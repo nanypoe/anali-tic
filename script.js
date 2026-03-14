@@ -154,6 +154,14 @@ moduleSelector.addEventListener("change", () =>
   renderizarTabla(window.datosProcesados),
 );
 
+document.getElementById("search-input").addEventListener("input", (e) => {
+  const termino = e.target.value.toLowerCase();
+  const filtrados = window.datosProcesados.filter((est) =>
+    `${est.nombre} ${est.apellidos}`.toLowerCase().includes(termino),
+  );
+  renderizarTabla(filtrados);
+});
+
 document
   .getElementById("btn-modo-reporte")
   .addEventListener("click", function () {
@@ -179,6 +187,17 @@ function handleFile(file) {
         workbook.Sheets[workbook.SheetNames[0]],
       );
 
+      if (jsonData.length === 0 || !jsonData[0].hasOwnProperty("Nombre")) {
+        loaderOverlay.style.display = "none";
+        Swal.fire({
+          icon: "error",
+          title: "Archivo no reconocido",
+          text: "El formato no es válido. Asegúrate de exportar el reporte de calificaciones desde el CAMPUS.",
+          confirmButtonColor: "#0d6efd",
+        });
+        return;
+      }
+
       let resultados = jsonData.map((est) => analizarEstudiante(est));
       resultados.sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
       window.datosProcesados = resultados;
@@ -197,20 +216,6 @@ function handleFile(file) {
     }
   };
   reader.readAsArrayBuffer(file);
-
-  const datos = XLSX.utils.sheet_to_json(hoja);
-
-  // VALIDACIÓN: Si no hay datos o no tienen las columnas esperadas
-  if (datos.length === 0 || !datos[0].hasOwnProperty("Nombre")) {
-    loaderOverlay.style.display = "none"; // Ocultar carga
-    Swal.fire({
-      icon: "error",
-      title: "Archivo no reconocido",
-      text: 'El archivo no coincide con ningún reporte de Campus Virtual. Verifica que el aula de la que estás exportando es "Módulos Transversales 26".',
-      confirmButtonColor: "#0d6efd",
-    });
-    return;
-  }
 }
 
 function analizarEstudiante(est) {
@@ -267,6 +272,9 @@ function renderizarTabla(datos) {
 
   let comp = 0,
     pend = 0;
+
+  let htmlFinal = "";
+
   datos.forEach((est) => {
     const modData = est.modulos[modSeleccionado];
     if (modData.completado) comp++;
@@ -296,8 +304,9 @@ function renderizarTabla(datos) {
                  <td class="text-center">
                     <button class="btn btn-sm btn-outline-primary fw-bold" style="font-size: 0.65rem" onclick="mostrarReporteIndividual(${globalIndex})">REPORTE</button>
                  </td></tr>`;
-    tbody.innerHTML += fila;
+    htmlFinal += fila;
   });
+  tbody.innerHTML = htmlFinal;
 
   document.getElementById("count-completados").innerText = comp;
   document.getElementById("count-pendientes").innerText = pend;
@@ -506,19 +515,22 @@ function formatearFechaLarga(fechaStr) {
 
 // Guardar datos al procesar
 function guardarEnLocal(data) {
-    localStorage.setItem('ultimoGrupo', JSON.stringify({
-        fecha: new Date().toISOString(),
-        datos: data
-    }));
+  localStorage.setItem(
+    "ultimoGrupo",
+    JSON.stringify({
+      fecha: new Date().toISOString(),
+      datos: data,
+    }),
+  );
 }
 
 // Cargar automáticamente al abrir la página
-window.addEventListener('load', () => {
-    const backup = localStorage.getItem('ultimoGrupo');
-    if (backup) {
-        const contenido = JSON.parse(backup);
-        window.datosProcesados = contenido.datos;
-        // Si quieres que se muestre directo al cargar, descomenta la siguiente línea:
-        // procesarYMostrar(window.datosProcesados); 
-    }
+window.addEventListener("load", () => {
+  const backup = localStorage.getItem("ultimoGrupo");
+  if (backup) {
+    const contenido = JSON.parse(backup);
+    window.datosProcesados = contenido.datos;
+    // Si quieres que se muestre directo al cargar, descomenta la siguiente línea:
+    // procesarYMostrar(window.datosProcesados);
+  }
 });
