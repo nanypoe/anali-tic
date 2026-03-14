@@ -1,0 +1,16 @@
+.border-dashed {
+    border: 2px dashed #0d6efd;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.border-dashed:hover {
+    background-color: #f0f7ff;
+    border-color: #0a58ca;
+}
+
+.drop-active {
+    background-color: #e2efff !important;
+    border-style: solid !important;
+    transform: scale(1.02);
+}
