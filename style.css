@@ -1,16 +1,116 @@
-.border-dashed {
-    border: 2px dashed #0d6efd;
-    transition: all 0.3s ease;
-    cursor: pointer;
+/* General y Logo */
+.logo-institucional {
+    height: 80px; /* Tamaño elegante y controlado */
+    width: auto;
 }
 
-.border-dashed:hover {
-    background-color: #f0f7ff;
-    border-color: #0a58ca;
+.x-small { font-size: 0.75rem; }
+
+/* Overlay de Carga - Ahora inicia oculto con display:none */
+#loader-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    display: none; /* JS lo cambiará a flex */
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+}
+
+/* Zona de carga */
+.border-dashed {
+    border: 2px dashed #0d6efd;
+    background: #fff;
+    transition: all 0.3s ease;
 }
 
 .drop-active {
-    background-color: #e2efff !important;
-    border-style: solid !important;
-    transform: scale(1.02);
+    background-color: #eef6ff !important;
+    transform: scale(1.01);
+}
+
+/* Tabla Uniforme y Elegante */
+.table { border-collapse: separate; border-spacing: 0; }
+.table thead th { 
+    font-size: 0.7rem; 
+    text-transform: uppercase; 
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.nombre-estudiante {
+    font-weight: 500;
+    color: #333;
+    line-height: 1.2;
+}
+
+/* Badges con más contraste */
+.badge-status {
+    padding: 4px 10px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.badge-completo { background-color: #198754; color: #fff; }
+.badge-pendiente { background-color: #EBF213; color: #435D73; } /* Un tono más fuerte que el rojo */
+
+.nombre-estudiante {
+    font-weight: 600;
+    color: #2c3e50;
+    letter-spacing: -0.2px;
+}
+
+.table {
+    border: 1px solid #dee2e6;
+}
+
+.table thead th {
+    background-color: #f8f9fa;
+    color: #495057;
+    font-size: 0.65rem !important;
+    border-bottom: 2px solid #0d6efd !important;
+}
+
+/* Ajuste de contadores para que no sean tan gigantes */
+#count-completados, #count-pendientes {
+    font-size: 2rem !important;
+}
+
+/* Asegura que la captura de imagen sea limpia */
+#status-area {
+    background-color: #f8f9fa; /* Fondo gris muy claro para contraste */
+    padding: 15px;
+    border-radius: 8px;
+}
+
+#btn-exportar-img {
+    transition: all 0.2s ease;
+}
+
+#btn-exportar-img:hover {
+    transform: scale(1.05);
+}
+
+.boleta-recibo {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #2c3e50;
+    line-height: 1.4;
+    min-height: 600px;
+}
+
+.boleta-recibo h5 {
+    letter-spacing: 0.5px;
+    color: #0d6efd;
+}
+
+.boleta-recibo .text-success { color: #198754 !important; }
+.boleta-recibo .text-danger { color: #dc3545 !important; }
+.boleta-recibo .text-warning { color: #997404 !important; }
+
+#area-captura-reporte {
+    background: white;
 }
