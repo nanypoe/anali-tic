@@ -534,3 +534,105 @@ window.addEventListener("load", () => {
     // procesarYMostrar(window.datosProcesados);
   }
 });
+
+// --- NUEVAS FUNCIONES DE INTERACTIVIDAD ---
+
+// 1. Hacer que el contador de pendientes sea clicable
+document.getElementById("count-pendientes").parentElement.style.cursor = "pointer";
+document.getElementById("count-pendientes").parentElement.addEventListener("click", mostrarModalPendientes);
+
+function mostrarModalPendientes() {
+    const modSeleccionado = document.getElementById("module-selector").value;
+    const listaContenedor = document.getElementById("lista-estudiantes-pendientes");
+    const tituloModulo = document.getElementById("modulo-pendiente-titulo");
+    
+    tituloModulo.innerText = modSeleccionado;
+    listaContenedor.innerHTML = "";
+
+    // Filtrar estudiantes que no han completado el módulo
+    const pendientes = window.datosProcesados.filter(est => !est.modulos[modSeleccionado].completado);
+
+    if (pendientes.length === 0) {
+        listaContenedor.innerHTML = "<div class='p-3 text-center'>No hay estudiantes pendientes.</div>";
+    } else {
+        pendientes.forEach(est => {
+            let aprobados = 0;
+            let total = 0;
+            const unidades = est.modulos[modSeleccionado].unidades;
+            
+            for (let u in unidades) {
+                unidades[u].forEach(c => {
+                    total++;
+                    if (c.nota >= 60) aprobados++;
+                });
+            }
+
+            const item = document.createElement("div");
+            item.className = "list-group-item d-flex justify-content-between align-items-center";
+            item.innerHTML = `
+                <span class="item-nombre text-uppercase">${est.nombre} ${est.apellidos}</span>
+                <span class="badge bg-light text-dark border item-conteo">${aprobados} de ${total} cuestionarios</span>
+            `;
+            listaContenedor.appendChild(item);
+        });
+    }
+
+    new bootstrap.Modal(document.getElementById("modalPendientes")).show();
+}
+
+// 2. Botón para capturar imagen del modal
+document.getElementById("btn-captura-pendientes").addEventListener("click", function() {
+    const area = document.getElementById("area-captura-pendientes");
+    const mod = document.getElementById("module-selector").value;
+    const btn = this;
+    
+    btn.disabled = true;
+    btn.innerText = "⌛...";
+
+    html2canvas(area, { scale: 2 }).then(canvas => {
+        const link = document.createElement("a");
+        link.download = `Pendientes_${mod.replace(/\s+/g, '_')}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+        
+        btn.disabled = false;
+        btn.innerText = "📸 Capturar Imagen";
+    });
+});
+
+// 3. Botón para copiar texto formateado (Markdown para WhatsApp)
+document.getElementById("btn-copiar-whatsapp").addEventListener("click", function() {
+    const modSeleccionado = document.getElementById("module-selector").value;
+    const pendientes = window.datosProcesados.filter(est => !est.modulos[modSeleccionado].completado);
+    
+    if (pendientes.length === 0) return;
+
+    let texto = `*ESTUDIANTES PENDIENTES*\n`;
+    texto += `*Módulo:* ${modSeleccionado}\n`;
+    texto += `--------------------------------\n`;
+
+    pendientes.forEach(est => {
+        let aprobados = 0;
+        let total = 0;
+        const unidades = est.modulos[modSeleccionado].unidades;
+        for (let u in unidades) {
+            unidades[u].forEach(c => {
+                total++;
+                if (c.nota >= 60) aprobados++;
+            });
+        }
+        texto += `• ${est.nombre} ${est.apellidos} (${aprobados}/${total})\n`;
+    });
+
+    texto += `\n_A la par de su nombre aparecen la cantidad de cuestionarios pendientes vs el total. Por favor, tener en cuenta la fecha de corte y ponerse al día con sus actividades._`;
+
+    navigator.clipboard.writeText(texto).then(() => {
+        Swal.fire({
+            icon: 'success',
+            title: '¡Copiado!',
+            text: 'El listado se ha copiado al portapapeles para WhatsApp.',
+            timer: 2000,
+            showConfirmButton: false
+        });
+    });
+});

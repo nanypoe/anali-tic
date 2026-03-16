@@ -124,3 +124,29 @@
 .table-hover tbody tr:hover {
     background-color: rgba(13, 110, 253, 0.05);
 }
+
+/* Estilos para interactividad de contadores */
+#count-pendientes, #count-completados {
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+#count-pendientes:hover {
+    transform: scale(1.1);
+}
+
+.list-group-item {
+    border-left: none;
+    border-right: none;
+    padding: 10px 15px;
+}
+
+.item-nombre {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.item-conteo {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
