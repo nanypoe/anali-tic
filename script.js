@@ -636,3 +636,85 @@ document.getElementById("btn-copiar-whatsapp").addEventListener("click", functio
         });
     });
 });
+
+// --- FUNCIONES PARA COMPLETADOS (REUTILIZANDO LÓGICA) ---
+
+// 1. Hacer que el contador de completados sea clicable
+document.getElementById("count-completados").parentElement.style.cursor = "pointer";
+document.getElementById("count-completados").parentElement.addEventListener("click", mostrarModalCompletados);
+
+function mostrarModalCompletados() {
+    const modSeleccionado = document.getElementById("module-selector").value;
+    const listaContenedor = document.getElementById("lista-estudiantes-completados");
+    const tituloModulo = document.getElementById("modulo-completo-titulo");
+    
+    tituloModulo.innerText = modSeleccionado;
+    listaContenedor.innerHTML = "";
+
+    // Filtrar estudiantes que SÍ han completado el módulo
+    const completados = window.datosProcesados.filter(est => est.modulos[modSeleccionado].completado);
+
+    if (completados.length === 0) {
+        listaContenedor.innerHTML = "<div class='p-3 text-center text-muted'>Aún no hay estudiantes que hayan completado este módulo.</div>";
+    } else {
+        completados.forEach(est => {
+            const item = document.createElement("div");
+            item.className = "list-group-item d-flex justify-content-between align-items-center";
+            item.innerHTML = `
+                <span class="item-nombre text-uppercase text-success">${est.nombre} ${est.apellidos}</span>
+                <span class="badge bg-success-subtle text-success border border-success-subtle item-conteo">¡FINALIZADO!</span>
+            `;
+            listaContenedor.appendChild(item);
+        });
+    }
+
+    new bootstrap.Modal(document.getElementById("modalCompletados")).show();
+}
+
+// 2. Botón para capturar imagen de COMPLETADOS
+document.getElementById("btn-captura-completados").addEventListener("click", function() {
+    const area = document.getElementById("area-captura-completados");
+    const mod = document.getElementById("module-selector").value;
+    const btn = this;
+    
+    btn.disabled = true;
+    btn.innerText = "⌛...";
+
+    html2canvas(area, { scale: 2 }).then(canvas => {
+        const link = document.createElement("a");
+        link.download = `Completados_${mod.replace(/\s+/g, '_')}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+        
+        btn.disabled = false;
+        btn.innerText = "📸 Capturar Imagen";
+    });
+});
+
+// 3. Botón para copiar COMPLETADOS (WhatsApp)
+document.getElementById("btn-copiar-completados-whatsapp").addEventListener("click", function() {
+    const modSeleccionado = document.getElementById("module-selector").value;
+    const completados = window.datosProcesados.filter(est => est.modulos[modSeleccionado].completado);
+    
+    if (completados.length === 0) return;
+
+    let texto = `*ESTUDIANTES QUE COMPLETARON EL MÓDULO* ✅\n`;
+    texto += `*Módulo:* ${modSeleccionado}\n`;
+    texto += `--------------------------------\n`;
+
+    completados.forEach(est => {
+        texto += `✅ ${est.nombre} ${est.apellidos}\n`;
+    });
+
+    texto += `\n_¡Felicidades por su excelente desempeño y compromiso!_`;
+
+    navigator.clipboard.writeText(texto).then(() => {
+        Swal.fire({
+            icon: 'success',
+            title: '¡Copiado!',
+            text: 'La lista de éxitos se ha copiado al portapapeles.',
+            timer: 2000,
+            showConfirmButton: false
+        });
+    });
+});
