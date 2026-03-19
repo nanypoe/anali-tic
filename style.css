@@ -1,25 +1,22 @@
-/* General y Logo */
 .logo-institucional {
-    height: 80px; /* Tamaño elegante y controlado */
+    height: 80px; 
     width: auto;
 }
 
 .x-small { font-size: 0.75rem; }
 
-/* Overlay de Carga - Ahora inicia oculto con display:none */
 #loader-overlay {
     position: fixed;
     top: 0; left: 0;
     width: 100%; height: 100%;
     background: rgba(0, 0, 0, 0.85);
     backdrop-filter: blur(8px);
-    display: none; /* JS lo cambiará a flex */
+    display: none; 
     justify-content: center;
     align-items: center;
     z-index: 10000;
 }
 
-/* Zona de carga */
 .border-dashed {
     border: 2px dashed #0d6efd;
     background: #fff;
@@ -31,7 +28,6 @@
     transform: scale(1.01);
 }
 
-/* Tabla Uniforme y Elegante */
 .table { border-collapse: separate; border-spacing: 0; }
 .table thead th { 
     font-size: 0.7rem; 
@@ -46,7 +42,6 @@
     line-height: 1.2;
 }
 
-/* Badges con más contraste */
 .badge-status {
     padding: 4px 10px;
     font-size: 0.65rem;
@@ -56,7 +51,7 @@
 }
 
 .badge-completo { background-color: #198754; color: #fff; }
-.badge-pendiente { background-color: #EBF213; color: #435D73; } /* Un tono más fuerte que el rojo */
+.badge-pendiente { background-color: #EBF213; color: #435D73; } 
 
 .nombre-estudiante {
     font-weight: 600;
@@ -75,14 +70,12 @@
     border-bottom: 2px solid #0d6efd !important;
 }
 
-/* Ajuste de contadores para que no sean tan gigantes */
 #count-completados, #count-pendientes {
     font-size: 2rem !important;
 }
 
-/* Asegura que la captura de imagen sea limpia */
 #status-area {
-    background-color: #f8f9fa; /* Fondo gris muy claro para contraste */
+    background-color: #f8f9fa; 
     padding: 15px;
     border-radius: 8px;
 }
@@ -120,12 +113,10 @@
     padding: 8px 4px;
 }
 
-/* Mejora la visibilidad del modo lectura */
 .table-hover tbody tr:hover {
     background-color: rgba(13, 110, 253, 0.05);
 }
 
-/* Estilos para interactividad de contadores */
 #count-pendientes, #count-completados {
     cursor: pointer;
     transition: transform 0.2s ease;

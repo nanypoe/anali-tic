@@ -333,13 +333,13 @@ document
           controles.style.setProperty("display", "none", "important");
         }
 
-        // 2. Ocultar la columna de botones "REPORTE" de la tabla para que se vea más limpia
+        // 2. Ocultar la columna de botones de reporte y la columna de estado
         const botonesReporte = clonedDoc.querySelectorAll(
           "td .btn, th:last-child",
         );
         botonesReporte.forEach((el) => (el.style.display = "none"));
 
-        // 3. Ajuste: Asegurarnos de que los contadores (Completados/Pendientes) sí se vean
+        // 3. Contadores de pendientes y completados visibles
         const stats = clonedDoc.getElementById("stats-summary");
         if (stats) stats.style.marginBottom = "20px";
       },
@@ -509,7 +509,7 @@ document
   });
 
 function formatearFechaLarga(fechaStr) {
-  const fecha = new Date(fechaStr + "T00:00:00"); // Forzar hora local
+  const fecha = new Date(fechaStr + "T00:00:00");
   return `${DIAS_SEMANA[fecha.getDay()]}, ${fecha.getDate()} de ${MESES[fecha.getMonth()]} de 2026`;
 }
 
@@ -530,12 +530,11 @@ window.addEventListener("load", () => {
   if (backup) {
     const contenido = JSON.parse(backup);
     window.datosProcesados = contenido.datos;
-    // Si quieres que se muestre directo al cargar, descomenta la siguiente línea:
     // procesarYMostrar(window.datosProcesados);
   }
 });
 
-// --- NUEVAS FUNCIONES DE INTERACTIVIDAD ---
+// --- NUEVAS FUNCIONES PARA LA VERSIÓN 2 ---
 
 // 1. Hacer que el contador de pendientes sea clicable
 document.getElementById("count-pendientes").parentElement.style.cursor = "pointer";
@@ -600,7 +599,7 @@ document.getElementById("btn-captura-pendientes").addEventListener("click", func
     });
 });
 
-// 3. Botón para copiar texto formateado (Markdown para WhatsApp)
+// 3. Botón para copiar texto formateado en markdown
 document.getElementById("btn-copiar-whatsapp").addEventListener("click", function() {
     const modSeleccionado = document.getElementById("module-selector").value;
     const pendientes = window.datosProcesados.filter(est => !est.modulos[modSeleccionado].completado);
@@ -637,9 +636,7 @@ document.getElementById("btn-copiar-whatsapp").addEventListener("click", functio
     });
 });
 
-// --- FUNCIONES PARA COMPLETADOS (REUTILIZANDO LÓGICA) ---
-
-// 1. Hacer que el contador de completados sea clicable
+// 4. Hacer que el contador de completados sea clicable
 document.getElementById("count-completados").parentElement.style.cursor = "pointer";
 document.getElementById("count-completados").parentElement.addEventListener("click", mostrarModalCompletados);
 
@@ -671,7 +668,7 @@ function mostrarModalCompletados() {
     new bootstrap.Modal(document.getElementById("modalCompletados")).show();
 }
 
-// 2. Botón para capturar imagen de COMPLETADOS
+// 5. Botón para capturar imagen de COMPLETADOS
 document.getElementById("btn-captura-completados").addEventListener("click", function() {
     const area = document.getElementById("area-captura-completados");
     const mod = document.getElementById("module-selector").value;
@@ -691,7 +688,7 @@ document.getElementById("btn-captura-completados").addEventListener("click", fun
     });
 });
 
-// 3. Botón para copiar COMPLETADOS (WhatsApp)
+// 3. Botón para copiar COMPLETADOS en markdown
 document.getElementById("btn-copiar-completados-whatsapp").addEventListener("click", function() {
     const modSeleccionado = document.getElementById("module-selector").value;
     const completados = window.datosProcesados.filter(est => est.modulos[modSeleccionado].completado);
