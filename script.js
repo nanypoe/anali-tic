@@ -47,6 +47,13 @@ const DIAS_SEMANA = [
   "Sábado",
 ];
 
+let listaGruposUnicos = [];
+let datosProcesadosOriginal = [];
+
+// Variables para el selector de grupo
+const grupoSelector = document.getElementById("grupo-selector");
+let grupoSeleccionadoActual = null; // Almacena el grupo actualmente seleccionado
+
 let modoReporte = false;
 window.datosProcesados = [];
 
@@ -137,6 +144,72 @@ function inicializarSelector() {
 }
 inicializarSelector();
 
+// ============================================
+// TAREA 1: CARGA Y MAPEO DE DATOS DESDE estudiantes.json
+// ============================================
+
+// Variable global para almacenar el mapa de estudiantes
+let estudiantesMap = new Map();
+
+// Función para cargar y procesar el archivo JSON
+async function cargarEstudiantesJSON() {
+  try {
+    const response = await fetch("estudiantes.json");
+    if (!response.ok) {
+      console.warn(
+        "No se pudo cargar estudiantes.json. La funcionalidad de grupos estará limitada.",
+      );
+      return;
+    }
+
+    const estudiantesData = await response.json();
+
+    // Crear el mapa usando el correo como clave (en minúsculas)
+    estudiantesData.forEach((est) => {
+      if (est.correo) {
+        const emailNormalizado = est.correo.toLowerCase().trim();
+        estudiantesMap.set(emailNormalizado, est);
+      }
+    });
+
+    console.log(
+      `✅ estudiantes.json cargado correctamente. ${estudiantesMap.size} registros mapeados.`,
+    );
+
+    // Opcional: Mostrar algunos ejemplos para verificar
+    const primerosCorreos = Array.from(estudiantesMap.keys()).slice(0, 3);
+    console.log("📧 Ejemplos de correos mapeados:", primerosCorreos);
+  } catch (error) {
+    console.error("❌ Error al cargar estudiantes.json:", error);
+  }
+}
+
+// Función auxiliar para obtener la información de un estudiante por su correo
+function obtenerInfoPorCorreo(correo) {
+  if (!correo) return null;
+  const emailNormalizado = correo.toLowerCase().trim();
+  return estudiantesMap.get(emailNormalizado) || null;
+}
+
+// Función auxiliar para obtener el nombre completo formateado desde el JSON
+function formatearNombreDesdeJSON(infoJson) {
+  if (!infoJson) return "";
+  return `${infoJson.nombres} ${infoJson.apellidos}`.toUpperCase();
+}
+
+// Cargar los datos al iniciar la página
+window.addEventListener("load", () => {
+  cargarEstudiantesJSON();
+
+  // Mantener la funcionalidad existente de localStorage
+  const backup = localStorage.getItem("ultimoGrupo");
+  if (backup) {
+    const contenido = JSON.parse(backup);
+    window.datosProcesados = contenido.datos;
+    // Nota: No procesamos automáticamente para no interferir con la carga manual
+  }
+});
+
 // --- EVENTOS ---
 dropZone.addEventListener("dragover", (e) => {
   e.preventDefault();
@@ -174,6 +247,76 @@ document
     renderizarTabla(window.datosProcesados);
   });
 
+// Event listener para el selector de grupo
+if (grupoSelector) {
+  grupoSelector.addEventListener("change", (e) => {
+    const valorSeleccionado = e.target.value;
+    filtrarPorGrupo(valorSeleccionado);
+  });
+}
+
+// Función para llenar el selector de grupo
+function llenarSelectorGrupo() {
+  if (!grupoSelector) return;
+
+  // Limpiar opciones existentes (mantener la primera opción por defecto)
+  grupoSelector.innerHTML =
+    '<option value="">📚 Seleccione un grupo...</option>';
+
+  if (listaGruposUnicos.length === 0) {
+    grupoSelector.classList.add("d-none");
+    return;
+  }
+
+  // Mostrar el selector
+  grupoSelector.classList.remove("d-none");
+
+  // Añadir cada grupo como opción
+  listaGruposUnicos.forEach((grupo, index) => {
+    const option = document.createElement("option");
+    option.value = index; // Usamos el índice como valor
+    option.textContent = grupo.formatear();
+    grupoSelector.appendChild(option);
+  });
+
+  console.log(
+    `✅ Selector de grupo actualizado con ${listaGruposUnicos.length} opciones`,
+  );
+}
+
+// Función para filtrar estudiantes por grupo seleccionado
+function filtrarPorGrupo(grupoIndex) {
+  if (grupoIndex === "" || grupoIndex === null || grupoIndex === undefined) {
+    // Mostrar todos los estudiantes
+    window.datosProcesados = [...datosProcesadosOriginal];
+    grupoSeleccionadoActual = null;
+  } else {
+    const grupoSeleccionado = listaGruposUnicos[parseInt(grupoIndex)];
+    if (grupoSeleccionado) {
+      // Filtrar estudiantes que pertenecen a este grupo
+      const filtrados = datosProcesadosOriginal.filter(
+        (est) =>
+          est.infoJson &&
+          est.infoJson.turno === grupoSeleccionado.turno &&
+          est.infoJson.carrera === grupoSeleccionado.carrera &&
+          est.infoJson.grupo === grupoSeleccionado.grupo &&
+          est.infoJson.codigo === grupoSeleccionado.codigo,
+      );
+      window.datosProcesados = filtrados;
+      grupoSeleccionadoActual = grupoSeleccionado;
+      console.log(
+        `📊 Filtrado por grupo: ${grupoSeleccionado.formatear()} - ${filtrados.length} estudiantes`,
+      );
+    }
+  }
+
+  // Actualizar la tabla y los contadores
+  renderizarTabla(window.datosProcesados);
+
+  // Actualizar la información del grupo mostrada
+  actualizarInfoGrupo();
+}
+
 function handleFile(file) {
   if (!file) return;
   loaderOverlay.style.display = "flex";
@@ -202,13 +345,208 @@ function handleFile(file) {
       resultados.sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
       window.datosProcesados = resultados;
 
+      // ============================================
+      // TAREA 2: ENRIQUECER DATOS Y DETECTAR GRUPOS
+      // ============================================
+
+      // 1. Enriquecer cada estudiante con infoJson
+      const estudiantesEnriquecidos = [];
+      const gruposSet = new Set(); // Usamos Set para evitar duplicados
+
+      for (const est of resultados) {
+        // Buscar el correo del estudiante en el Excel (necesitamos obtenerlo del archivo original)
+        // Primero necesitamos encontrar el objeto original en jsonData que corresponde a este estudiante
+        const estudianteOriginal = jsonData.find(
+          (item) =>
+            item["Nombre"] === est.nombre &&
+            item["Apellido(s)"] === est.apellidos,
+        );
+
+        let infoJson = null;
+        let correoEncontrado = null;
+
+        if (estudianteOriginal) {
+          // Buscar por correo en el mapa
+          const posiblesCorreos = [
+            estudianteOriginal["Dirección de correo"],
+            estudianteOriginal["Correo"],
+            estudianteOriginal["Email"],
+          ];
+
+          for (const correo of posiblesCorreos) {
+            if (correo) {
+              infoJson = obtenerInfoPorCorreo(correo);
+              if (infoJson) {
+                correoEncontrado = correo;
+                break;
+              }
+            }
+          }
+        }
+
+        // Crear objeto enriquecido
+        const estEnriquecido = {
+          ...est,
+          infoJson: infoJson,
+          correo: correoEncontrado,
+        };
+
+        estudiantesEnriquecidos.push(estEnriquecido);
+
+        // Si tiene infoJson, agregar su grupo al Set
+        if (infoJson) {
+          const grupoKey = `${infoJson.turno}|${infoJson.carrera}|${infoJson.grupo}|${infoJson.codigo}`;
+          gruposSet.add(grupoKey);
+        }
+      }
+
+      // Función para actualizar la información del grupo en la UI
+      function actualizarInfoGrupo() {
+        const container = document.getElementById("info-grupo-container");
+        const tituloElem = document.getElementById("info-grupo-titulo");
+        const detalleElem = document.getElementById("info-grupo-detalle");
+        const cantidadElem = document.getElementById("info-grupo-cantidad");
+
+        if (!container || !tituloElem || !detalleElem || !cantidadElem) return;
+
+        // Si no hay grupo seleccionado o no hay datos, ocultar el contenedor
+        if (!grupoSeleccionadoActual || window.datosProcesados.length === 0) {
+          container.style.display = "none";
+          return;
+        }
+
+        // Formatear la información del grupo
+        const grupo = grupoSeleccionadoActual;
+
+        // Obtener el tipo de técnico (TG o TE)
+        const tipoTecnico = grupo.codigo.startsWith("TG")
+          ? "TÉCNICO GENERAL"
+          : "TÉCNICO ESPECIALISTA";
+
+        // Obtener el nombre completo de la carrera
+        const nombresCarreras = {
+          contabilidad: "CONTABILIDAD",
+          computacion: "COMPUTACIÓN",
+          panaderia: "PANADERÍA",
+          ingles: "INGLÉS",
+          banca: "BANCA Y FINANZAS",
+          programacion: "PROGRAMACIÓN",
+          administracion: "ADMINISTRACIÓN",
+          zootecnia: "ZOOTECNIA",
+          agronomia: "AGRONOMÍA",
+          aduanera: "GESTIÓN ADUANERA",
+        };
+        const carreraNombre =
+          nombresCarreras[grupo.carrera] || grupo.carrera.toUpperCase();
+
+        // Capitalizar el turno
+        const turnoCapitalizado =
+          grupo.turno.charAt(0).toUpperCase() + grupo.turno.slice(1);
+
+        // Construir el título y detalle
+        const titulo = `${tipoTecnico} EN ${carreraNombre}`;
+        const detalle = `${grupo.codigo} | ${turnoCapitalizado} - GRUPO ${grupo.grupo}`;
+        const cantidad = window.datosProcesados.length;
+
+        // Actualizar los elementos
+        tituloElem.textContent = titulo;
+        detalleElem.textContent = detalle;
+        cantidadElem.textContent = cantidad;
+
+        // Mostrar el contenedor
+        container.style.display = "block";
+
+        console.log(
+          `📋 Información del grupo mostrada: ${titulo} - ${detalle} (${cantidad} estudiantes)`,
+        );
+      }
+
+      // 2. Crear la lista de grupos únicos
+      listaGruposUnicos = [];
+      for (const grupoKey of gruposSet) {
+        // Extraer los datos del primer estudiante que coincida con este grupo
+        const estudianteEjemplo = estudiantesEnriquecidos.find(
+          (est) =>
+            est.infoJson &&
+            `${est.infoJson.turno}|${est.infoJson.carrera}|${est.infoJson.grupo}|${est.infoJson.codigo}` ===
+              grupoKey,
+        );
+
+        if (estudianteEjemplo && estudianteEjemplo.infoJson) {
+          listaGruposUnicos.push({
+            turno: estudianteEjemplo.infoJson.turno,
+            carrera: estudianteEjemplo.infoJson.carrera,
+            grupo: estudianteEjemplo.infoJson.grupo,
+            codigo: estudianteEjemplo.infoJson.codigo,
+            // Función auxiliar para obtener el tipo de técnico
+            getTipoTecnico: function () {
+              return this.codigo.startsWith("TG")
+                ? "TÉCNICO GENERAL"
+                : "TÉCNICO ESPECIALISTA";
+            },
+            // Función auxiliar para obtener el nombre completo de la carrera
+            getNombreCarrera: function () {
+              const nombresCarreras = {
+                contabilidad: "CONTABILIDAD",
+                computacion: "COMPUTACIÓN",
+                panaderia: "PANADERÍA",
+                ingles: "INGLÉS",
+                banca: "BANCA Y FINANZAS",
+                programacion: "PROGRAMACIÓN",
+                administracion: "ADMINISTRACIÓN",
+                zootecnia: "ZOOTECNIA",
+                agronomia: "AGRONOMÍA",
+                aduanera: "GESTIÓN ADUANERA",
+              };
+              return (
+                nombresCarreras[this.carrera] || this.carrera.toUpperCase()
+              );
+            },
+            // Función para formatear el grupo como texto
+            formatear: function () {
+              const tipo = this.getTipoTecnico();
+              const carreraNombre = this.getNombreCarrera();
+              const turnoCapitalizado =
+                this.turno.charAt(0).toUpperCase() + this.turno.slice(1);
+              return `G${this.grupo} - ${carreraNombre} - ${this.codigo} | ${turnoCapitalizado}`;
+            },
+          });
+        }
+      }
+
+      // Ordenar grupos por código para mejor visualización
+      listaGruposUnicos.sort((a, b) => {
+        // Convertimos a número por si acaso vienen como string "1", "2"...
+        return Number(a.grupo) - Number(b.grupo);
+      });
+
+      // 3. Guardar los datos originales (sin filtrar)
+      datosProcesadosOriginal = [...estudiantesEnriquecidos];
+      window.datosProcesados = [...estudiantesEnriquecidos];
+
+      console.log(
+        `✅ Datos enriquecidos: ${estudiantesEnriquecidos.length} estudiantes procesados`,
+      );
+      console.log(`📊 Grupos únicos detectados: ${listaGruposUnicos.length}`);
+      console.log(
+        "📋 Lista de grupos:",
+        listaGruposUnicos.map((g) => g.formatear()),
+      );
+
       setTimeout(() => {
         loaderOverlay.style.display = "none";
         uploadContainer.classList.add("d-none");
         navActions.classList.remove("d-none");
         statusArea.classList.remove("d-none");
-        renderizarTabla(resultados);
+        renderizarTabla(window.datosProcesados);
+
+        // Llenar el selector de grupo
+        llenarSelectorGrupo();
+
+        // Actualizar información del grupo (inicialmente oculto porque no hay grupo seleccionado)
+        actualizarInfoGrupo();
       }, 1200);
+
     } catch (error) {
       console.error(error);
       loaderOverlay.style.display = "none";
@@ -537,181 +875,211 @@ window.addEventListener("load", () => {
 // --- NUEVAS FUNCIONES PARA LA VERSIÓN 2 ---
 
 // 1. Hacer que el contador de pendientes sea clicable
-document.getElementById("count-pendientes").parentElement.style.cursor = "pointer";
-document.getElementById("count-pendientes").parentElement.addEventListener("click", mostrarModalPendientes);
+document.getElementById("count-pendientes").parentElement.style.cursor =
+  "pointer";
+document
+  .getElementById("count-pendientes")
+  .parentElement.addEventListener("click", mostrarModalPendientes);
 
 function mostrarModalPendientes() {
-    const modSeleccionado = document.getElementById("module-selector").value;
-    const listaContenedor = document.getElementById("lista-estudiantes-pendientes");
-    const tituloModulo = document.getElementById("modulo-pendiente-titulo");
-    
-    tituloModulo.innerText = modSeleccionado;
-    listaContenedor.innerHTML = "";
+  const modSeleccionado = document.getElementById("module-selector").value;
+  const listaContenedor = document.getElementById(
+    "lista-estudiantes-pendientes",
+  );
+  const tituloModulo = document.getElementById("modulo-pendiente-titulo");
 
-    // Filtrar estudiantes que no han completado el módulo
-    const pendientes = window.datosProcesados.filter(est => !est.modulos[modSeleccionado].completado);
+  tituloModulo.innerText = modSeleccionado;
+  listaContenedor.innerHTML = "";
 
-    if (pendientes.length === 0) {
-        listaContenedor.innerHTML = "<div class='p-3 text-center'>No hay estudiantes pendientes.</div>";
-    } else {
-        pendientes.forEach(est => {
-            let aprobados = 0;
-            let total = 0;
-            const unidades = est.modulos[modSeleccionado].unidades;
-            
-            for (let u in unidades) {
-                unidades[u].forEach(c => {
-                    total++;
-                    if (c.nota >= 60) aprobados++;
-                });
-            }
+  // Filtrar estudiantes que no han completado el módulo
+  const pendientes = window.datosProcesados.filter(
+    (est) => !est.modulos[modSeleccionado].completado,
+  );
 
-            const item = document.createElement("div");
-            item.className = "list-group-item d-flex justify-content-between align-items-center";
-            item.innerHTML = `
+  if (pendientes.length === 0) {
+    listaContenedor.innerHTML =
+      "<div class='p-3 text-center'>No hay estudiantes pendientes.</div>";
+  } else {
+    pendientes.forEach((est) => {
+      let aprobados = 0;
+      let total = 0;
+      const unidades = est.modulos[modSeleccionado].unidades;
+
+      for (let u in unidades) {
+        unidades[u].forEach((c) => {
+          total++;
+          if (c.nota >= 60) aprobados++;
+        });
+      }
+
+      const item = document.createElement("div");
+      item.className =
+        "list-group-item d-flex justify-content-between align-items-center";
+      item.innerHTML = `
                 <span class="item-nombre text-uppercase">${est.nombre} ${est.apellidos}</span>
                 <span class="badge bg-light text-dark border item-conteo">${aprobados} de ${total} cuestionarios</span>
             `;
-            listaContenedor.appendChild(item);
-        });
-    }
+      listaContenedor.appendChild(item);
+    });
+  }
 
-    new bootstrap.Modal(document.getElementById("modalPendientes")).show();
+  new bootstrap.Modal(document.getElementById("modalPendientes")).show();
 }
 
 // 2. Botón para capturar imagen del modal
-document.getElementById("btn-captura-pendientes").addEventListener("click", function() {
+document
+  .getElementById("btn-captura-pendientes")
+  .addEventListener("click", function () {
     const area = document.getElementById("area-captura-pendientes");
     const mod = document.getElementById("module-selector").value;
     const btn = this;
-    
+
     btn.disabled = true;
     btn.innerText = "⌛...";
 
-    html2canvas(area, { scale: 2 }).then(canvas => {
-        const link = document.createElement("a");
-        link.download = `Pendientes_${mod.replace(/\s+/g, '_')}.png`;
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-        
-        btn.disabled = false;
-        btn.innerText = "📸 Capturar Imagen";
+    html2canvas(area, { scale: 2 }).then((canvas) => {
+      const link = document.createElement("a");
+      link.download = `Pendientes_${mod.replace(/\s+/g, "_")}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+
+      btn.disabled = false;
+      btn.innerText = "📸 Capturar Imagen";
     });
-});
+  });
 
 // 3. Botón para copiar texto formateado en markdown
-document.getElementById("btn-copiar-whatsapp").addEventListener("click", function() {
+document
+  .getElementById("btn-copiar-whatsapp")
+  .addEventListener("click", function () {
     const modSeleccionado = document.getElementById("module-selector").value;
-    const pendientes = window.datosProcesados.filter(est => !est.modulos[modSeleccionado].completado);
-    
+    const pendientes = window.datosProcesados.filter(
+      (est) => !est.modulos[modSeleccionado].completado,
+    );
+
     if (pendientes.length === 0) return;
 
     let texto = `*ESTUDIANTES PENDIENTES*\n`;
     texto += `*Módulo:* ${modSeleccionado}\n`;
     texto += `--------------------------------\n`;
 
-    pendientes.forEach(est => {
-        let aprobados = 0;
-        let total = 0;
-        const unidades = est.modulos[modSeleccionado].unidades;
-        for (let u in unidades) {
-            unidades[u].forEach(c => {
-                total++;
-                if (c.nota >= 60) aprobados++;
-            });
-        }
-        texto += `• ${est.nombre} ${est.apellidos} (${aprobados}/${total})\n`;
+    pendientes.forEach((est) => {
+      let aprobados = 0;
+      let total = 0;
+      const unidades = est.modulos[modSeleccionado].unidades;
+      for (let u in unidades) {
+        unidades[u].forEach((c) => {
+          total++;
+          if (c.nota >= 60) aprobados++;
+        });
+      }
+      texto += `• ${est.nombre} ${est.apellidos} (${aprobados}/${total})\n`;
     });
 
     texto += `\n_A la par de su nombre aparecen la cantidad de cuestionarios pendientes vs el total. Por favor, tener en cuenta la fecha de corte y ponerse al día con sus actividades._`;
 
     navigator.clipboard.writeText(texto).then(() => {
-        Swal.fire({
-            icon: 'success',
-            title: '¡Copiado!',
-            text: 'El listado se ha copiado al portapapeles para WhatsApp.',
-            timer: 2000,
-            showConfirmButton: false
-        });
+      Swal.fire({
+        icon: "success",
+        title: "¡Copiado!",
+        text: "El listado se ha copiado al portapapeles para WhatsApp.",
+        timer: 2000,
+        showConfirmButton: false,
+      });
     });
-});
+  });
 
 // 4. Hacer que el contador de completados sea clicable
-document.getElementById("count-completados").parentElement.style.cursor = "pointer";
-document.getElementById("count-completados").parentElement.addEventListener("click", mostrarModalCompletados);
+document.getElementById("count-completados").parentElement.style.cursor =
+  "pointer";
+document
+  .getElementById("count-completados")
+  .parentElement.addEventListener("click", mostrarModalCompletados);
 
 function mostrarModalCompletados() {
-    const modSeleccionado = document.getElementById("module-selector").value;
-    const listaContenedor = document.getElementById("lista-estudiantes-completados");
-    const tituloModulo = document.getElementById("modulo-completo-titulo");
-    
-    tituloModulo.innerText = modSeleccionado;
-    listaContenedor.innerHTML = "";
+  const modSeleccionado = document.getElementById("module-selector").value;
+  const listaContenedor = document.getElementById(
+    "lista-estudiantes-completados",
+  );
+  const tituloModulo = document.getElementById("modulo-completo-titulo");
 
-    // Filtrar estudiantes que SÍ han completado el módulo
-    const completados = window.datosProcesados.filter(est => est.modulos[modSeleccionado].completado);
+  tituloModulo.innerText = modSeleccionado;
+  listaContenedor.innerHTML = "";
 
-    if (completados.length === 0) {
-        listaContenedor.innerHTML = "<div class='p-3 text-center text-muted'>Aún no hay estudiantes que hayan completado este módulo.</div>";
-    } else {
-        completados.forEach(est => {
-            const item = document.createElement("div");
-            item.className = "list-group-item d-flex justify-content-between align-items-center";
-            item.innerHTML = `
+  // Filtrar estudiantes que SÍ han completado el módulo
+  const completados = window.datosProcesados.filter(
+    (est) => est.modulos[modSeleccionado].completado,
+  );
+
+  if (completados.length === 0) {
+    listaContenedor.innerHTML =
+      "<div class='p-3 text-center text-muted'>Aún no hay estudiantes que hayan completado este módulo.</div>";
+  } else {
+    completados.forEach((est) => {
+      const item = document.createElement("div");
+      item.className =
+        "list-group-item d-flex justify-content-between align-items-center";
+      item.innerHTML = `
                 <span class="item-nombre text-uppercase text-success">${est.nombre} ${est.apellidos}</span>
                 <span class="badge bg-success-subtle text-success border border-success-subtle item-conteo">¡FINALIZADO!</span>
             `;
-            listaContenedor.appendChild(item);
-        });
-    }
+      listaContenedor.appendChild(item);
+    });
+  }
 
-    new bootstrap.Modal(document.getElementById("modalCompletados")).show();
+  new bootstrap.Modal(document.getElementById("modalCompletados")).show();
 }
 
 // 5. Botón para capturar imagen de COMPLETADOS
-document.getElementById("btn-captura-completados").addEventListener("click", function() {
+document
+  .getElementById("btn-captura-completados")
+  .addEventListener("click", function () {
     const area = document.getElementById("area-captura-completados");
     const mod = document.getElementById("module-selector").value;
     const btn = this;
-    
+
     btn.disabled = true;
     btn.innerText = "⌛...";
 
-    html2canvas(area, { scale: 2 }).then(canvas => {
-        const link = document.createElement("a");
-        link.download = `Completados_${mod.replace(/\s+/g, '_')}.png`;
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-        
-        btn.disabled = false;
-        btn.innerText = "📸 Capturar Imagen";
+    html2canvas(area, { scale: 2 }).then((canvas) => {
+      const link = document.createElement("a");
+      link.download = `Completados_${mod.replace(/\s+/g, "_")}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+
+      btn.disabled = false;
+      btn.innerText = "📸 Capturar Imagen";
     });
-});
+  });
 
 // 3. Botón para copiar COMPLETADOS en markdown
-document.getElementById("btn-copiar-completados-whatsapp").addEventListener("click", function() {
+document
+  .getElementById("btn-copiar-completados-whatsapp")
+  .addEventListener("click", function () {
     const modSeleccionado = document.getElementById("module-selector").value;
-    const completados = window.datosProcesados.filter(est => est.modulos[modSeleccionado].completado);
-    
+    const completados = window.datosProcesados.filter(
+      (est) => est.modulos[modSeleccionado].completado,
+    );
+
     if (completados.length === 0) return;
 
     let texto = `*ESTUDIANTES QUE COMPLETARON EL MÓDULO* ✅\n`;
     texto += `*Módulo:* ${modSeleccionado}\n`;
     texto += `--------------------------------\n`;
 
-    completados.forEach(est => {
-        texto += `✅ ${est.nombre} ${est.apellidos}\n`;
+    completados.forEach((est) => {
+      texto += `✅ ${est.nombre} ${est.apellidos}\n`;
     });
 
     texto += `\n_¡Felicidades por su excelente desempeño y compromiso!_`;
 
     navigator.clipboard.writeText(texto).then(() => {
-        Swal.fire({
-            icon: 'success',
-            title: '¡Copiado!',
-            text: 'La lista de éxitos se ha copiado al portapapeles.',
-            timer: 2000,
-            showConfirmButton: false
-        });
+      Swal.fire({
+        icon: "success",
+        title: "¡Copiado!",
+        text: "La lista de éxitos se ha copiado al portapapeles.",
+        timer: 2000,
+        showConfirmButton: false,
+      });
     });
-});
+  });
