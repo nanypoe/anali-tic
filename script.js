@@ -317,6 +317,67 @@ function filtrarPorGrupo(grupoIndex) {
   actualizarInfoGrupo();
 }
 
+// Función para actualizar la información del grupo en la UI
+      function actualizarInfoGrupo() {
+        const container = document.getElementById("info-grupo-container");
+        const tituloElem = document.getElementById("info-grupo-titulo");
+        const detalleElem = document.getElementById("info-grupo-detalle");
+        const cantidadElem = document.getElementById("info-grupo-cantidad");
+
+        if (!container || !tituloElem || !detalleElem || !cantidadElem) return;
+
+        // Si no hay grupo seleccionado o no hay datos, ocultar el contenedor
+        if (!grupoSeleccionadoActual || window.datosProcesados.length === 0) {
+          container.style.display = "none";
+          return;
+        }
+
+        // Formatear la información del grupo
+        const grupo = grupoSeleccionadoActual;
+
+        // Obtener el tipo de técnico (TG o TE)
+        const tipoTecnico = grupo.codigo.startsWith("TG")
+          ? "TÉCNICO GENERAL"
+          : "TÉCNICO ESPECIALISTA";
+
+        // Obtener el nombre completo de la carrera
+        const nombresCarreras = {
+          contabilidad: "CONTABILIDAD",
+          computacion: "COMPUTACIÓN",
+          panaderia: "PANADERÍA",
+          ingles: "INGLÉS",
+          banca: "BANCA Y FINANZAS",
+          programacion: "PROGRAMACIÓN",
+          administracion: "ADMINISTRACIÓN",
+          zootecnia: "ZOOTECNIA",
+          agronomia: "AGRONOMÍA",
+          aduanera: "GESTIÓN ADUANERA",
+        };
+        const carreraNombre =
+          nombresCarreras[grupo.carrera] || grupo.carrera.toUpperCase();
+
+        // Capitalizar el turno
+        const turnoCapitalizado =
+          grupo.turno.charAt(0).toUpperCase() + grupo.turno.slice(1);
+
+        // Construir el título y detalle
+        const titulo = `${tipoTecnico} EN ${carreraNombre}`;
+        const detalle = `${grupo.codigo} | ${turnoCapitalizado} - GRUPO ${grupo.grupo}`;
+        const cantidad = window.datosProcesados.length;
+
+        // Actualizar los elementos
+        tituloElem.textContent = titulo;
+        detalleElem.textContent = detalle;
+        cantidadElem.textContent = cantidad;
+
+        // Mostrar el contenedor
+        container.style.display = "block";
+
+        console.log(
+          `📋 Información del grupo mostrada: ${titulo} - ${detalle} (${cantidad} estudiantes)`,
+        );
+      }
+
 function handleFile(file) {
   if (!file) return;
   loaderOverlay.style.display = "flex";
@@ -398,67 +459,6 @@ function handleFile(file) {
           const grupoKey = `${infoJson.turno}|${infoJson.carrera}|${infoJson.grupo}|${infoJson.codigo}`;
           gruposSet.add(grupoKey);
         }
-      }
-
-      // Función para actualizar la información del grupo en la UI
-      function actualizarInfoGrupo() {
-        const container = document.getElementById("info-grupo-container");
-        const tituloElem = document.getElementById("info-grupo-titulo");
-        const detalleElem = document.getElementById("info-grupo-detalle");
-        const cantidadElem = document.getElementById("info-grupo-cantidad");
-
-        if (!container || !tituloElem || !detalleElem || !cantidadElem) return;
-
-        // Si no hay grupo seleccionado o no hay datos, ocultar el contenedor
-        if (!grupoSeleccionadoActual || window.datosProcesados.length === 0) {
-          container.style.display = "none";
-          return;
-        }
-
-        // Formatear la información del grupo
-        const grupo = grupoSeleccionadoActual;
-
-        // Obtener el tipo de técnico (TG o TE)
-        const tipoTecnico = grupo.codigo.startsWith("TG")
-          ? "TÉCNICO GENERAL"
-          : "TÉCNICO ESPECIALISTA";
-
-        // Obtener el nombre completo de la carrera
-        const nombresCarreras = {
-          contabilidad: "CONTABILIDAD",
-          computacion: "COMPUTACIÓN",
-          panaderia: "PANADERÍA",
-          ingles: "INGLÉS",
-          banca: "BANCA Y FINANZAS",
-          programacion: "PROGRAMACIÓN",
-          administracion: "ADMINISTRACIÓN",
-          zootecnia: "ZOOTECNIA",
-          agronomia: "AGRONOMÍA",
-          aduanera: "GESTIÓN ADUANERA",
-        };
-        const carreraNombre =
-          nombresCarreras[grupo.carrera] || grupo.carrera.toUpperCase();
-
-        // Capitalizar el turno
-        const turnoCapitalizado =
-          grupo.turno.charAt(0).toUpperCase() + grupo.turno.slice(1);
-
-        // Construir el título y detalle
-        const titulo = `${tipoTecnico} EN ${carreraNombre}`;
-        const detalle = `${grupo.codigo} | ${turnoCapitalizado} - GRUPO ${grupo.grupo}`;
-        const cantidad = window.datosProcesados.length;
-
-        // Actualizar los elementos
-        tituloElem.textContent = titulo;
-        detalleElem.textContent = detalle;
-        cantidadElem.textContent = cantidad;
-
-        // Mostrar el contenedor
-        container.style.display = "block";
-
-        console.log(
-          `📋 Información del grupo mostrada: ${titulo} - ${detalle} (${cantidad} estudiantes)`,
-        );
       }
 
       // 2. Crear la lista de grupos únicos
@@ -546,7 +546,6 @@ function handleFile(file) {
         // Actualizar información del grupo (inicialmente oculto porque no hay grupo seleccionado)
         actualizarInfoGrupo();
       }, 1200);
-
     } catch (error) {
       console.error(error);
       loaderOverlay.style.display = "none";
