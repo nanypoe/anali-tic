@@ -662,7 +662,7 @@ document
     btn.disabled = true;
 
     html2canvas(tablaContenedor, {
-      scale: 2,
+      scale: 3,
       useCORS: true,
       backgroundColor: "#f8f9fa",
       onclone: (clonedDoc) => {
@@ -714,6 +714,30 @@ function mostrarReporteIndividual(estudianteIndex) {
     FECHAS_CORTE[modSeleccionado],
   );
 
+  // ============================================
+  // TAREA 6: OBTENER INFORMACIÓN DE CARRERA Y CÓDIGO
+  // ============================================
+  let infoCarrera = "";
+  if (est.infoJson) {
+    const tipoTecnico = est.infoJson.codigo.startsWith("TG") ? "TÉCNICO GENERAL" : "TÉCNICO ESPECIALISTA";
+    
+    const nombresCarreras = {
+      contabilidad: "CONTABILIDAD",
+      computacion: "COMPUTACIÓN",
+      panaderia: "PANADERÍA",
+      ingles: "INGLÉS",
+      banca: "BANCA Y FINANZAS",
+      programacion: "PROGRAMACIÓN",
+      administracion: "ADMINISTRACIÓN",
+      zootecnia: "ZOOTECNIA",
+      agronomia: "AGRONOMÍA",
+      aduanera: "GESTIÓN ADUANERA",
+    };
+    
+    const carreraNombre = nombresCarreras[est.infoJson.carrera] || est.infoJson.carrera.toUpperCase();
+    infoCarrera = `${tipoTecnico} EN ${carreraNombre} - ${est.infoJson.codigo}`;
+  }
+
   let aprobados = 0,
     total = 0;
   for (let uni in modData.unidades) {
@@ -735,6 +759,7 @@ function mostrarReporteIndividual(estudianteIndex) {
 
         <div class="mb-4">
             <h5 id="nombre-estudiante-reporte" class="text-primary fw-bold text-uppercase mb-1">${est.nombre} ${est.apellidos}</h5>
+            ${est.infoJson ? `<p class="mb-1 text-secondary fw-bold" style="font-size: 0.85rem">${infoCarrera}</p>` : ''}
             <p class="mb-2"><strong>Módulo:</strong> <span class="fw-bold text-dark">${modSeleccionado}</span></p>
             <div class="p-3 bg-light rounded-3 border-start border-4 border-primary">
                 <p class="mb-0 small">
