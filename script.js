@@ -145,7 +145,7 @@ function inicializarSelector() {
 inicializarSelector();
 
 // ============================================
-// TAREA 1: CARGA Y MAPEO DE DATOS DESDE estudiantes.json
+// CARGA Y MAPEO DE DATOS DESDE estudiantes.json
 // ============================================
 
 // Variable global para almacenar el mapa de estudiantes
@@ -206,7 +206,6 @@ window.addEventListener("load", () => {
   if (backup) {
     const contenido = JSON.parse(backup);
     window.datosProcesados = contenido.datos;
-    // Nota: No procesamos automáticamente para no interferir con la carga manual
   }
 });
 
@@ -407,7 +406,7 @@ function handleFile(file) {
       window.datosProcesados = resultados;
 
       // ============================================
-      // TAREA 2: ENRIQUECER DATOS Y DETECTAR GRUPOS
+      // ENRIQUECER DATOS Y DETECTAR GRUPOS
       // ============================================
 
       // 1. Enriquecer cada estudiante con infoJson
@@ -645,8 +644,11 @@ function renderizarTabla(datos) {
   });
   tbody.innerHTML = htmlFinal;
 
-  document.getElementById("count-completados").innerText = comp;
-  document.getElementById("count-pendientes").innerText = pend;
+  let totalEstado = comp + pend;
+  let porcentajePendientes = (pend / totalEstado) * 100;
+  let porcentajeCompletados = (comp / totalEstado) * 100;
+  document.getElementById("count-completados").innerText = comp + ` (${Number(porcentajeCompletados.toFixed(0))}%)`;
+  document.getElementById("count-pendientes").innerText = pend + ` (${Number(porcentajePendientes.toFixed(0))}%)`;
 }
 
 // --- FUNCIÓN PARA EXPORTAR COMO IMAGEN ---//
