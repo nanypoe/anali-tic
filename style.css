@@ -141,3 +141,26 @@
     font-size: 0.75rem;
     color: #6c757d;
 }
+
+/* Estilos para la tabla de grupos */
+.sticky-top {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.bg-danger-subtle {
+    background-color: #f8d7da !important;
+}
+
+.bg-success-subtle {
+    background-color: #d1e7dd !important;
+}
+
+#tabla-grupos-body tr:hover {
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+#btn-ver-tabla-grupos {
+    white-space: nowrap;
+}

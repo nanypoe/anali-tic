@@ -1141,7 +1141,225 @@ window.addEventListener("load", () => {
   }
 });
 
-// --- NUEVAS FUNCIONES PARA LA VERSIÓN 2 ---
+// ============================================
+// PUNTO 1: MODAL DE TABLA GENERAL DE GRUPOS
+// ============================================
+
+// Función para mostrar/ocultar el botón de tabla de grupos según el selector
+function toggleBtnTablaGrupos() {
+    const btn = document.getElementById("btn-ver-tabla-grupos");
+    if (!btn) return;
+    
+    if (grupoSelector && (grupoSelector.value === "" || grupoSelector.value === null)) {
+        btn.classList.remove("d-none");
+    } else {
+        btn.classList.add("d-none");
+    }
+}
+
+// Función para generar los datos de la tabla de grupos
+function generarDatosTablaGrupos() {
+    const modSeleccionado = moduleSelector.value;
+    const datosGrupos = [];
+    
+    // Calcular para cada grupo
+    listaGruposUnicos.forEach(grupo => {
+        // Filtrar estudiantes de este grupo
+        const estudiantesGrupo = datosProcesadosOriginal.filter(est => 
+            est.infoJson &&
+            est.infoJson.turno === grupo.turno &&
+            est.infoJson.carrera === grupo.carrera &&
+            est.infoJson.grupo === grupo.grupo &&
+            est.infoJson.codigo === grupo.codigo
+        );
+        
+        const total = estudiantesGrupo.length;
+        const completados = estudiantesGrupo.filter(est => est.modulos[modSeleccionado]?.completado).length;
+        const pendientes = total - completados;
+        const porcentajeCompletados = total > 0 ? (completados / total) * 100 : 0;
+        const porcentajePendientes = total > 0 ? (pendientes / total) * 100 : 0;
+        
+        datosGrupos.push({
+            grupo: grupo.grupo,
+            carrera: grupo.getNombreCarrera(),
+            codigo: grupo.codigo,
+            pendientes: pendientes,
+            porcentajePendientes: Math.round(porcentajePendientes),
+            completados: completados,
+            porcentajeCompletados: Math.round(porcentajeCompletados),
+            total: total
+        });
+    });
+    
+    // Ordenar por número de grupo
+    datosGrupos.sort((a, b) => Number(a.grupo) - Number(b.grupo));
+    
+    return datosGrupos;
+}
+
+// Función para renderizar la tabla de grupos
+function renderizarTablaGrupos() {
+    const tbody = document.getElementById("tabla-grupos-body");
+    const moduloSpan = document.getElementById("tabla-grupos-modulo");
+    const modSeleccionado = moduleSelector.value;
+    
+    if (!tbody || !moduloSpan) return;
+    
+    moduloSpan.textContent = modSeleccionado;
+    const datos = generarDatosTablaGrupos();
+    
+    if (datos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-5">No hay datos disponibles</td></tr>';
+        return;
+    }
+    
+    let html = "";
+    let totalEstudiantes = 0;
+    let totalCompletados = 0;
+    let totalPendientes = 0;
+    
+    datos.forEach(grupo => {
+        totalEstudiantes += grupo.total;
+        totalCompletados += grupo.completados;
+        totalPendientes += grupo.pendientes;
+        
+        html += `
+            <tr class="text-center">
+                <td class="fw-bold">${grupo.grupo}</td>
+                <td class="text-start">${grupo.carrera}</td>
+                <td><code>${grupo.codigo}</code></td>
+                <td class="bg-danger-subtle fw-bold">${grupo.pendientes}</td>
+                <td class="bg-danger-subtle">${grupo.porcentajePendientes}%</td>
+                <td class="bg-success-subtle fw-bold">${grupo.completados}</td>
+                <td class="bg-success-subtle">${grupo.porcentajeCompletados}%</td>
+                <td>${grupo.total}</td>
+            </tr>
+        `;
+    });
+    
+    tbody.innerHTML = html;
+    
+    // Actualizar footer
+    const porcentajeTotalCompletados = totalEstudiantes > 0 ? (totalCompletados / totalEstudiantes) * 100 : 0;
+    const porcentajeTotalPendientes = totalEstudiantes > 0 ? (totalPendientes / totalEstudiantes) * 100 : 0;
+    
+    document.getElementById("footer-total-estudiantes").textContent = totalEstudiantes;
+    document.getElementById("footer-total-completados").innerHTML = `${totalCompletados} (<span>${Math.round(porcentajeTotalCompletados)}</span>%)`;
+    document.getElementById("footer-total-pendientes").innerHTML = `${totalPendientes} (<span>${Math.round(porcentajeTotalPendientes)}</span>%)`;
+}
+
+// Función para exportar tabla a Excel
+function exportarTablaGruposExcel() {
+    const modSeleccionado = moduleSelector.value;
+    const datos = generarDatosTablaGrupos();
+    
+    if (datos.length === 0) {
+        Swal.fire({
+            icon: "warning",
+            title: "Sin datos",
+            text: "No hay datos para exportar.",
+            timer: 2000,
+            showConfirmButton: false
+        });
+        return;
+    }
+    
+    // Preparar datos para Excel
+    const excelData = datos.map(grupo => ({
+        "Grupo": grupo.grupo,
+        "Carrera": grupo.carrera,
+        "Código": grupo.codigo,
+        "Pendientes": grupo.pendientes,
+        "% Pendientes": grupo.porcentajePendientes,
+        "Completados": grupo.completados,
+        "% Completados": grupo.porcentajeCompletados,
+        "Total": grupo.total
+    }));
+    
+    // Agregar fila de totales
+    const totalEstudiantes = datos.reduce((sum, g) => sum + g.total, 0);
+    const totalCompletados = datos.reduce((sum, g) => sum + g.completados, 0);
+    const totalPendientes = totalEstudiantes - totalCompletados;
+    
+    excelData.push({
+        "Grupo": "TOTAL",
+        "Carrera": "",
+        "Código": "",
+        "Pendientes": totalPendientes,
+        "% Pendientes": Math.round((totalPendientes / totalEstudiantes) * 100),
+        "Completados": totalCompletados,
+        "% Completados": Math.round((totalCompletados / totalEstudiantes) * 100),
+        "Total": totalEstudiantes
+    });
+    
+    // Crear nombre de hoja truncado a máximo 31 caracteres
+    let sheetName = `Resumen_${modSeleccionado}`;
+    if (sheetName.length > 31) {
+        sheetName = sheetName.substring(0, 28) + "...";
+        // Si aún es muy largo, acortar más
+        if (sheetName.length > 31) {
+            sheetName = sheetName.substring(0, 31);
+        }
+    }
+    
+    // Crear hoja de trabajo
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    
+    // Descargar
+    const fecha = new Date().toLocaleDateString().replace(/\//g, "-");
+    XLSX.writeFile(wb, `AnaliTIC_Resumen_${modSeleccionado.replace(/\s+/g, "_")}_${fecha}.xlsx`);
+    
+    Swal.fire({
+        icon: "success",
+        title: "Exportado",
+        text: "El archivo Excel se ha generado correctamente.",
+        timer: 2000,
+        showConfirmButton: false
+    });
+}
+
+// Función para mostrar el modal de tabla de grupos
+function mostrarModalTablaGrupos() {
+    renderizarTablaGrupos();
+    new bootstrap.Modal(document.getElementById("modalTablaGrupos")).show();
+}
+
+// Añadir event listener al botón de tabla de grupos
+const btnVerTablaGrupos = document.getElementById("btn-ver-tabla-grupos");
+if (btnVerTablaGrupos) {
+    btnVerTablaGrupos.addEventListener("click", mostrarModalTablaGrupos);
+}
+
+// Añadir event listener al botón de exportar
+const btnExportarTablaGrupos = document.getElementById("btn-exportar-tabla-grupos");
+if (btnExportarTablaGrupos) {
+    btnExportarTablaGrupos.addEventListener("click", exportarTablaGruposExcel);
+}
+
+// Modificar la función filtrarPorGrupo para actualizar la visibilidad del botón
+const originalFiltrarPorGrupo = filtrarPorGrupo;
+filtrarPorGrupo = function(grupoIndex) {
+    originalFiltrarPorGrupo(grupoIndex);
+    toggleBtnTablaGrupos();
+};
+
+// Modificar llenarSelectorGrupo para mostrar el botón cuando corresponda
+const originalLlenarSelectorGrupo = llenarSelectorGrupo;
+llenarSelectorGrupo = function() {
+    originalLlenarSelectorGrupo();
+    toggleBtnTablaGrupos();
+};
+
+// También actualizar cuando cambia el módulo
+moduleSelector.addEventListener("change", () => {
+    if (document.getElementById("modalTablaGrupos")?.classList.contains("show")) {
+        renderizarTablaGrupos();
+    }
+});
+
+// --- EVENT LISTENERS ---
 
 // 1. Hacer que el contador de pendientes sea clicable
 document.getElementById("count-pendientes").parentElement.style.cursor =

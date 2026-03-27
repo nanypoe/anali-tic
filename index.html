@@ -10,7 +10,10 @@
     />
     <link rel="stylesheet" href="style.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    />
   </head>
   <body class="bg-light">
     <div id="loader-overlay">
@@ -21,9 +24,7 @@
           style="width: 3rem; height: 3rem"
         ></div>
         <h4 class="mt-3 text-white">Anali-TIC está procesando los datos...</h4>
-        <p class="text-white-50 small">
-          Generando análisis del aula...
-        </p>
+        <p class="text-white-50 small">Generando análisis del aula...</p>
       </div>
     </div>
 
@@ -138,13 +139,20 @@
         <div class="card shadow-sm border-0 overflow-hidden">
           <div class="card-header bg-white py-3 border-bottom">
             <div class="row g-2 align-items-center">
-              <div class="col-md-3">
+              <div class="col-md-3 d-grid row-gap-2">
                 <select
                   id="grupo-selector"
                   class="form-select form-select-sm border-primary-subtle d-none"
                 >
                   <option value="">📚 Seleccione un grupo...</option>
                 </select>
+                <button
+                  id="btn-ver-tabla-grupos"
+                  class="btn btn-sm btn-outline-primary d-none"
+                  title="Ver resumen de todos los grupos"
+                >
+                  <i class="bi bi-table"></i> Analisis del aula
+                </button>
               </div>
               <div class="col-md-3">
                 <select
@@ -325,39 +333,185 @@
       </div>
     </div>
 
-<!-- Modal de Credenciales -->
-<div class="modal fade" id="modalCredenciales" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-sm">
+    <!-- Modal de Credenciales -->
+    <div
+      class="modal fade"
+      id="modalCredenciales"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-sm">
         <div class="modal-content border-0">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title fw-bold">🔐 Credenciales</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title fw-bold">🔐 Credenciales</h5>
+            <button
+              type="button"
+              class="btn-close btn-close-white"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body p-4" id="area-captura-credenciales">
+            <div class="text-center mb-3">
+              <i
+                class="bi bi-person-circle"
+                style="font-size: 3rem; color: #0d6efd"
+              ></i>
             </div>
-            <div class="modal-body p-4" id="area-captura-credenciales">
-                <div class="text-center mb-3">
-                    <i class="bi bi-person-circle" style="font-size: 3rem; color: #0d6efd;"></i>
-                </div>
-                <div class="card bg-light border-0 mb-3">
-                    <div class="card-body">
-                        <p class="mb-2"><strong>👤 Usuario:</strong> <span id="credenciales-usuario" class="font-monospace">---</span></p>
-                        <p class="mb-0"><strong>🔑 Contraseña:</strong> <span id="credenciales-pass" class="font-monospace">---</span></p>
-                    </div>
-                </div>
-                <p class="small text-muted text-center mb-0">
-                    Credenciales de acceso a CAMPUS INATEC.
+            <div class="card bg-light border-0 mb-3">
+              <div class="card-body">
+                <p class="mb-2">
+                  <strong>👤 Usuario:</strong>
+                  <span id="credenciales-usuario" class="font-monospace"
+                    >---</span
+                  >
                 </p>
+                <p class="mb-0">
+                  <strong>🔑 Contraseña:</strong>
+                  <span id="credenciales-pass" class="font-monospace">---</span>
+                </p>
+              </div>
             </div>
-            <div class="modal-footer bg-light border-0">
-                <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-copiar-credenciales">
-                    📋 Copiar credenciales
-                </button>
-                <button type="button" class="btn btn-primary btn-sm" id="btn-captura-credenciales">
-                    📸 Capturar credenciales
-                </button>
-            </div>
+            <p class="small text-muted text-center mb-0">
+              Credenciales de acceso a CAMPUS INATEC.
+            </p>
+          </div>
+          <div class="modal-footer bg-light border-0">
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              id="btn-copiar-credenciales"
+            >
+              📋 Copiar credenciales
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary btn-sm"
+              id="btn-captura-credenciales"
+            >
+              📸 Capturar credenciales
+            </button>
+          </div>
         </div>
+      </div>
     </div>
-</div>
+
+    <!-- Modal de Tabla General de Grupos -->
+    <div
+      class="modal fade"
+      id="modalTablaGrupos"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-xl">
+        <div class="modal-content border-0">
+          <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title fw-bold">
+              <i class="bi bi-table"></i> Resumen de Avance por Grupo
+            </h5>
+            <button
+              type="button"
+              class="btn-close btn-close-white"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body p-0">
+            <div class="p-3 bg-light border-bottom">
+              <div class="row align-items-center">
+                <div class="col-md-6">
+                  <strong>Módulo:</strong>
+                  <span id="tabla-grupos-modulo" class="badge bg-primary"
+                    >---</span
+                  >
+                </div>
+                <div class="col-md-6 text-md-end">
+                  <small class="text-muted"
+                    >Reporte de avance por grupo académico</small
+                  >
+                </div>
+              </div>
+            </div>
+            <div class="table-responsive" style="max-height: 500px">
+              <table
+                class="table table-hover align-middle mb-0"
+                id="tabla-grupos"
+              >
+                <thead class="table-light sticky-top">
+                  <tr class="text-center">
+                    <th>Grupo</th>
+                    <th>Carrera</th>
+                    <th>Código</th>
+                    <th class="bg-danger-subtle">Pendientes</th>
+                    <th class="bg-danger-subtle">% Pend.</th>
+                    <th class="bg-success-subtle">Completados</th>
+                    <th class="bg-success-subtle">% Comp.</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
+                <tbody id="tabla-grupos-body"></tbody>
+              </table>
+            </div>
+            <div class="p-3 bg-light border-top" id="tabla-grupos-footer">
+              <div class="row text-center">
+                <div class="col-md-4">
+                  <div class="card bg-white shadow-sm">
+                    <div class="card-body py-2">
+                      <small class="text-muted">Total Estudiantes</small>
+                      <h6 id="footer-total-estudiantes" class="mb-0 fw-bold">
+                        0
+                      </h6>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="card bg-white shadow-sm">
+                    <div class="card-body py-2">
+                      <small class="text-muted">Total Completados</small>
+                      <h6
+                        id="footer-total-completados"
+                        class="mb-0 fw-bold text-success"
+                      >
+                        0 (<span id="footer-porcentaje-completados">0</span>%)
+                      </h6>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="card bg-white shadow-sm">
+                    <div class="card-body py-2">
+                      <small class="text-muted">Total Pendientes</small>
+                      <h6
+                        id="footer-total-pendientes"
+                        class="mb-0 fw-bold text-danger"
+                      >
+                        0 (<span id="footer-porcentaje-pendientes">0</span>%)
+                      </h6>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer bg-light border-0">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cerrar
+            </button>
+            <button
+              type="button"
+              class="btn btn-success"
+              id="btn-exportar-tabla-grupos"
+            >
+              📊 Exportar a Excel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
