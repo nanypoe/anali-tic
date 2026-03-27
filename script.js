@@ -317,65 +317,65 @@ function filtrarPorGrupo(grupoIndex) {
 }
 
 // Función para actualizar la información del grupo en la UI
-      function actualizarInfoGrupo() {
-        const container = document.getElementById("info-grupo-container");
-        const tituloElem = document.getElementById("info-grupo-titulo");
-        const detalleElem = document.getElementById("info-grupo-detalle");
-        const cantidadElem = document.getElementById("info-grupo-cantidad");
+function actualizarInfoGrupo() {
+  const container = document.getElementById("info-grupo-container");
+  const tituloElem = document.getElementById("info-grupo-titulo");
+  const detalleElem = document.getElementById("info-grupo-detalle");
+  const cantidadElem = document.getElementById("info-grupo-cantidad");
 
-        if (!container || !tituloElem || !detalleElem || !cantidadElem) return;
+  if (!container || !tituloElem || !detalleElem || !cantidadElem) return;
 
-        // Si no hay grupo seleccionado o no hay datos, ocultar el contenedor
-        if (!grupoSeleccionadoActual || window.datosProcesados.length === 0) {
-          container.style.display = "none";
-          return;
-        }
+  // Si no hay grupo seleccionado o no hay datos, ocultar el contenedor
+  if (!grupoSeleccionadoActual || window.datosProcesados.length === 0) {
+    container.style.display = "none";
+    return;
+  }
 
-        // Formatear la información del grupo
-        const grupo = grupoSeleccionadoActual;
+  // Formatear la información del grupo
+  const grupo = grupoSeleccionadoActual;
 
-        // Obtener el tipo de técnico (TG o TE)
-        const tipoTecnico = grupo.codigo.startsWith("TG")
-          ? "TÉCNICO GENERAL"
-          : "TÉCNICO ESPECIALISTA";
+  // Obtener el tipo de técnico (TG o TE)
+  const tipoTecnico = grupo.codigo.startsWith("TG")
+    ? "TÉCNICO GENERAL"
+    : "TÉCNICO ESPECIALISTA";
 
-        // Obtener el nombre completo de la carrera
-        const nombresCarreras = {
-          contabilidad: "CONTABILIDAD",
-          computacion: "COMPUTACIÓN",
-          panaderia: "PANADERÍA",
-          ingles: "INGLÉS",
-          banca: "BANCA Y FINANZAS",
-          programacion: "PROGRAMACIÓN",
-          administracion: "ADMINISTRACIÓN",
-          zootecnia: "ZOOTECNIA",
-          agronomia: "AGRONOMÍA",
-          aduanera: "GESTIÓN ADUANERA",
-        };
-        const carreraNombre =
-          nombresCarreras[grupo.carrera] || grupo.carrera.toUpperCase();
+  // Obtener el nombre completo de la carrera
+  const nombresCarreras = {
+    contabilidad: "CONTABILIDAD",
+    computacion: "COMPUTACIÓN",
+    panaderia: "PANADERÍA",
+    ingles: "INGLÉS",
+    banca: "BANCA Y FINANZAS",
+    programacion: "PROGRAMACIÓN",
+    administracion: "ADMINISTRACIÓN",
+    zootecnia: "ZOOTECNIA",
+    agronomia: "AGRONOMÍA",
+    aduanera: "GESTIÓN ADUANERA",
+  };
+  const carreraNombre =
+    nombresCarreras[grupo.carrera] || grupo.carrera.toUpperCase();
 
-        // Capitalizar el turno
-        const turnoCapitalizado =
-          grupo.turno.charAt(0).toUpperCase() + grupo.turno.slice(1);
+  // Capitalizar el turno
+  const turnoCapitalizado =
+    grupo.turno.charAt(0).toUpperCase() + grupo.turno.slice(1);
 
-        // Construir el título y detalle
-        const titulo = `${tipoTecnico} EN ${carreraNombre}`;
-        const detalle = `${grupo.codigo} | ${turnoCapitalizado} - GRUPO ${grupo.grupo}`;
-        const cantidad = window.datosProcesados.length;
+  // Construir el título y detalle
+  const titulo = `${tipoTecnico} EN ${carreraNombre}`;
+  const detalle = `${grupo.codigo} | ${turnoCapitalizado} - GRUPO ${grupo.grupo}`;
+  const cantidad = window.datosProcesados.length;
 
-        // Actualizar los elementos
-        tituloElem.textContent = titulo;
-        detalleElem.textContent = detalle;
-        cantidadElem.textContent = cantidad;
+  // Actualizar los elementos
+  tituloElem.textContent = titulo;
+  detalleElem.textContent = detalle;
+  cantidadElem.textContent = cantidad;
 
-        // Mostrar el contenedor
-        container.style.display = "block";
+  // Mostrar el contenedor
+  container.style.display = "block";
 
-        console.log(
-          `📋 Información del grupo mostrada: ${titulo} - ${detalle} (${cantidad} estudiantes)`,
-        );
-      }
+  console.log(
+    `📋 Información del grupo mostrada: ${titulo} - ${detalle} (${cantidad} estudiantes)`,
+  );
+}
 
 function handleFile(file) {
   if (!file) return;
@@ -647,8 +647,10 @@ function renderizarTabla(datos) {
   let totalEstado = comp + pend;
   let porcentajePendientes = (pend / totalEstado) * 100;
   let porcentajeCompletados = (comp / totalEstado) * 100;
-  document.getElementById("count-completados").innerText = comp + ` (${Number(porcentajeCompletados.toFixed(0))}%)`;
-  document.getElementById("count-pendientes").innerText = pend + ` (${Number(porcentajePendientes.toFixed(0))}%)`;
+  document.getElementById("count-completados").innerText =
+    comp + ` (${Number(porcentajeCompletados.toFixed(0))}%)`;
+  document.getElementById("count-pendientes").innerText =
+    pend + ` (${Number(porcentajePendientes.toFixed(0))}%)`;
 }
 
 // --- FUNCIÓN PARA EXPORTAR COMO IMAGEN ---//
@@ -714,13 +716,12 @@ function mostrarReporteIndividual(estudianteIndex) {
     FECHAS_CORTE[modSeleccionado],
   );
 
-  // ============================================
-  // TAREA 6: OBTENER INFORMACIÓN DE CARRERA Y CÓDIGO
-  // ============================================
+  // Obtener información de carrera
   let infoCarrera = "";
   if (est.infoJson) {
-    const tipoTecnico = est.infoJson.codigo.startsWith("TG") ? "TÉCNICO GENERAL" : "TÉCNICO ESPECIALISTA";
-    
+    const tipoTecnico = est.infoJson.codigo.startsWith("TG")
+      ? "TÉCNICO GENERAL"
+      : "TÉCNICO ESPECIALISTA";
     const nombresCarreras = {
       contabilidad: "CONTABILIDAD",
       computacion: "COMPUTACIÓN",
@@ -733,9 +734,20 @@ function mostrarReporteIndividual(estudianteIndex) {
       agronomia: "AGRONOMÍA",
       aduanera: "GESTIÓN ADUANERA",
     };
-    
-    const carreraNombre = nombresCarreras[est.infoJson.carrera] || est.infoJson.carrera.toUpperCase();
+    const carreraNombre =
+      nombresCarreras[est.infoJson.carrera] ||
+      est.infoJson.carrera.toUpperCase();
     infoCarrera = `${tipoTecnico} EN ${carreraNombre} - ${est.infoJson.codigo}`;
+  }
+
+  // Obtener teléfono para WhatsApp
+  let telefono = null;
+  let telefonoValido = false;
+  if (est.infoJson && est.infoJson.telefono) {
+    telefono = est.infoJson.telefono.trim();
+    if (telefono !== "" && /^\d{8,}$/.test(telefono.replace(/\D/g, ""))) {
+      telefonoValido = true;
+    }
   }
 
   let aprobados = 0,
@@ -759,7 +771,7 @@ function mostrarReporteIndividual(estudianteIndex) {
 
         <div class="mb-4">
             <h5 id="nombre-estudiante-reporte" class="text-primary fw-bold text-uppercase mb-1">${est.nombre} ${est.apellidos}</h5>
-            ${est.infoJson ? `<p class="mb-1 text-secondary fw-bold" style="font-size: 0.85rem">${infoCarrera}</p>` : ''}
+            ${est.infoJson ? `<p class="mb-1 text-secondary fw-bold" style="font-size: 0.85rem">${infoCarrera}</p>` : ""}
             <p class="mb-2"><strong>Módulo:</strong> <span class="fw-bold text-dark">${modSeleccionado}</span></p>
             <div class="p-3 bg-light rounded-3 border-start border-4 border-primary">
                 <p class="mb-0 small">
@@ -783,10 +795,10 @@ function mostrarReporteIndividual(estudianteIndex) {
                       .map((c, idx) => {
                         let color =
                           c.nota >= 60
-                            ? "text-success"
+                            ? "text-success h3"
                             : c.nota > 0
-                              ? "text-danger"
-                              : "text-warning";
+                              ? "text-danger h3"
+                              : "text-warning h3";
                         let msj = "";
                         if (c.nota >= 60)
                           msj = "¡Cuestionario aprobado con éxito!";
@@ -841,8 +853,239 @@ function mostrarReporteIndividual(estudianteIndex) {
         </div>
     </div>
     `;
+
+  // Guardar el HTML en el modal
   document.getElementById("area-captura-reporte").innerHTML = html;
+
+  // Configurar el footer del modal con los botones
+  const modalFooter = document.querySelector("#modalReporte .modal-footer");
+  if (modalFooter) {
+    // Crear botones de WhatsApp
+    const whatsappBtn = document.createElement("button");
+    whatsappBtn.type = "button";
+    whatsappBtn.className = "btn btn-success";
+    whatsappBtn.innerHTML = '<i class="bi bi-whatsapp"></i> CONTACTAR';
+    whatsappBtn.style.marginRight = "auto";
+    const whatsappBtnCopiar = document.createElement("button");
+    whatsappBtnCopiar.type = "button";
+    whatsappBtnCopiar.className = "btn btn-outline-success";
+    whatsappBtnCopiar.innerHTML =
+      '<i class="bi bi-clipboard"></i> Copiar número';
+    whatsappBtnCopiar.style.marginRight = "auto";
+
+    if (telefonoValido) {
+      const numeroLimpio = telefono.replace(/\D/g, "");
+      const urlWhatsApp = `https://web.whatsapp.com/send?phone=+${numeroLimpio}`;
+      whatsappBtn.onclick = () => {
+        window.open(urlWhatsApp, "_blank");
+      };
+      whatsappBtnCopiar.onclick = () => {
+        navigator.clipboard.writeText("+"+telefono).then(() => {
+          Swal.fire({
+            icon: "success",
+            title: "Número copiado",
+            text: `El número +${telefono} ha sido copiado al portapapeles.`,
+            confirmButtonColor: "#0d6efd",
+          });
+        });
+      };
+    } else {
+      whatsappBtn.disabled = true;
+      whatsappBtn.classList.add("btn-secondary");
+      whatsappBtn.classList.remove("btn-success");
+      whatsappBtn.setAttribute(
+        "title",
+        "No hay teléfono disponible para este estudiante en la base de datos",
+      );
+      whatsappBtn.setAttribute("data-bs-toggle", "tooltip");
+      whatsappBtn.setAttribute("data-bs-placement", "top");
+      whatsappBtnCopiar.disabled = true;
+      whatsappBtnCopiar.classList.add("btn-secondary");
+      whatsappBtnCopiar.classList.remove("btn-outline-success");
+      whatsappBtnCopiar.setAttribute(
+        "title",
+        "No hay teléfono disponible para este estudiante en la base de datos",
+      );
+      whatsappBtnCopiar.setAttribute("data-bs-toggle", "tooltip");
+      whatsappBtnCopiar.setAttribute("data-bs-placement", "top");
+    }
+
+    // Crear botón de Credenciales
+    const credencialesBtn = document.createElement("button");
+    credencialesBtn.type = "button";
+    credencialesBtn.className = "btn btn-outline-info";
+    credencialesBtn.innerHTML = '<i class="bi bi-key"></i> Credenciales';
+    credencialesBtn.onclick = () => {
+      mostrarModalCredenciales(est);
+    };
+
+    // Limpiar footer y añadir botones en el orden deseado
+    modalFooter.innerHTML = `
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      <button type="button" class="btn btn-primary" id="btn-descargar-reporte">📸 Reporte</button>
+    `;
+
+    // Insertar botón de WhatsApp al principio del footer
+    modalFooter.insertBefore(whatsappBtn, modalFooter.firstChild);
+    modalFooter.insertBefore(whatsappBtnCopiar, whatsappBtn.nextSibling);
+    // Insertar botón de Credenciales después de WhatsApp
+    modalFooter.insertBefore(credencialesBtn, modalFooter.children[2]);
+
+    // Inicializar tooltips para Bootstrap
+    const tooltipTriggerList = [].slice.call(
+      document.querySelectorAll('[data-bs-toggle="tooltip"]'),
+    );
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+  }
+
+  // Reasignar event listener al botón de captura (ya que se recreó el HTML)
+  const nuevoBtnCaptura = document.getElementById("btn-descargar-reporte");
+  if (nuevoBtnCaptura) {
+    nuevoBtnCaptura.addEventListener("click", function () {
+      const area = document.getElementById("area-captura-reporte");
+      const btn = this;
+      const nombreElemento = document.getElementById(
+        "nombre-estudiante-reporte",
+      );
+      let nombreArchivo = "Reporte_Individual";
+      if (nombreElemento) {
+        nombreArchivo = nombreElemento.innerText.trim().replace(/\s+/g, "_");
+      }
+      btn.innerHTML = "⌛...";
+      btn.disabled = true;
+      html2canvas(area, { scale: 2 }).then((canvas) => {
+        const link = document.createElement("a");
+        link.download = `Reporte_${nombreArchivo}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+        btn.innerHTML = "📸 Capturar reporte";
+        btn.disabled = false;
+      });
+    });
+  }
+
   new bootstrap.Modal(document.getElementById("modalReporte")).show();
+}
+
+// Función para mostrar el modal de credenciales
+function mostrarModalCredenciales(estudiante) {
+  const usuarioSpan = document.getElementById("credenciales-usuario");
+  const passSpan = document.getElementById("credenciales-pass");
+
+  if (!usuarioSpan || !passSpan) return;
+
+  // Actualizar los valores
+  if (estudiante.infoJson && estudiante.infoJson.usuario) {
+    usuarioSpan.textContent = estudiante.infoJson.usuario;
+  } else {
+    usuarioSpan.textContent = "No disponible";
+  }
+
+  if (estudiante.infoJson && estudiante.infoJson.contraseña) {
+    passSpan.textContent = estudiante.infoJson.contraseña;
+  } else {
+    passSpan.textContent = "No disponible";
+  }
+
+  // Almacenar referencia al estudiante para los botones de acción
+  const modalElement = document.getElementById("modalCredenciales");
+  modalElement.setAttribute(
+    "data-estudiante",
+    JSON.stringify({
+      nombre: `${estudiante.nombre} ${estudiante.apellidos}`,
+      usuario: estudiante.infoJson?.usuario || "No disponible",
+      contrasena: estudiante.infoJson?.contraseña || "No disponible",
+    }),
+  );
+
+  // Mostrar el modal
+  new bootstrap.Modal(modalElement).show();
+}
+
+// Función para copiar credenciales en formato Markdown
+function copiarCredencialesMarkdown() {
+  const modalElement = document.getElementById("modalCredenciales");
+  const dataStr = modalElement.getAttribute("data-estudiante");
+  if (!dataStr) return;
+
+  try {
+    const data = JSON.parse(dataStr);
+    const texto =
+      `*🔐 CREDENCIALES DE ACCESO*\n\n` +
+      `*Estudiante:* ${data.nombre}\n` +
+      `*Usuario:* ${data.usuario}\n` +
+      `*Contraseña:* ${data.contrasena}\n\n` +
+      `_Para ingresar a la siguente dirección https://campus.tecnacional.edu.ni/login/index.php_`;
+
+    navigator.clipboard.writeText(texto).then(() => {
+      Swal.fire({
+        icon: "success",
+        title: "¡Copiado!",
+        text: "Las credenciales se han copiado al portapapeles.",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+    });
+  } catch (e) {
+    console.error("Error al copiar:", e);
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "No se pudieron copiar las credenciales.",
+      timer: 2000,
+      showConfirmButton: false,
+    });
+  }
+}
+
+// Función para capturar imagen del modal de credenciales
+function capturarCredencialesImagen() {
+  const area = document.getElementById("area-captura-credenciales");
+  const modalElement = document.getElementById("modalCredenciales");
+  const nombreElemento =
+    document.querySelector("#credenciales-usuario")?.textContent ||
+    "credenciales";
+
+  if (!area) return;
+
+  const btn = document.getElementById("btn-captura-credenciales");
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = "⌛...";
+  }
+
+  html2canvas(area, {
+    scale: 2,
+    backgroundColor: "#ffffff",
+  })
+    .then((canvas) => {
+      const link = document.createElement("a");
+      const fecha = new Date().toLocaleDateString().replace(/\//g, "-");
+      link.download = `Credenciales_${nombreElemento}_${fecha}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = "📸 Capturar Imagen";
+      }
+    })
+    .catch((err) => {
+      console.error("Error al capturar:", err);
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = "📸 Capturar Imagen";
+      }
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "No se pudo capturar la imagen.",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+    });
 }
 
 document
@@ -1109,3 +1352,11 @@ document
       });
     });
   });
+
+// Event listeners para el modal de credenciales
+document
+  .getElementById("btn-copiar-credenciales")
+  ?.addEventListener("click", copiarCredencialesMarkdown);
+document
+  .getElementById("btn-captura-credenciales")
+  ?.addEventListener("click", capturarCredencialesImagen);

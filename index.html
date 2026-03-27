@@ -10,6 +10,7 @@
     />
     <link rel="stylesheet" href="style.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   </head>
   <body class="bg-light">
     <div id="loader-overlay">
@@ -21,7 +22,7 @@
         ></div>
         <h4 class="mt-3 text-white">Anali-TIC está procesando los datos...</h4>
         <p class="text-white-50 small">
-          Generando análisis pedagógico del grupo
+          Generando análisis del aula...
         </p>
       </div>
     </div>
@@ -310,19 +311,53 @@
               class="btn btn-outline-secondary btn-sm"
               id="btn-copiar-completados-whatsapp"
             >
-              📋 Copiar para WhatsApp
+              📋 Copiar Reporte
             </button>
             <button
               type="button"
               class="btn btn-success btn-sm fw-bold"
               id="btn-captura-completados"
             >
-              📸 Capturar Imagen
+              📸 Capturar Reporte
             </button>
           </div>
         </div>
       </div>
     </div>
+
+<!-- Modal de Credenciales -->
+<div class="modal fade" id="modalCredenciales" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content border-0">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold">🔐 Credenciales</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4" id="area-captura-credenciales">
+                <div class="text-center mb-3">
+                    <i class="bi bi-person-circle" style="font-size: 3rem; color: #0d6efd;"></i>
+                </div>
+                <div class="card bg-light border-0 mb-3">
+                    <div class="card-body">
+                        <p class="mb-2"><strong>👤 Usuario:</strong> <span id="credenciales-usuario" class="font-monospace">---</span></p>
+                        <p class="mb-0"><strong>🔑 Contraseña:</strong> <span id="credenciales-pass" class="font-monospace">---</span></p>
+                    </div>
+                </div>
+                <p class="small text-muted text-center mb-0">
+                    Credenciales de acceso a CAMPUS INATEC.
+                </p>
+            </div>
+            <div class="modal-footer bg-light border-0">
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-copiar-credenciales">
+                    📋 Copiar credenciales
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" id="btn-captura-credenciales">
+                    📸 Capturar credenciales
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
