@@ -8,11 +8,11 @@ const loaderOverlay = document.getElementById("loader-overlay");
 const moduleSelector = document.getElementById("module-selector");
 
 const FECHAS_CORTE = {
-  "Adaptación al Cambio Climático": "2026-04-13",
-  "Orientación Laboral": "2026-06-14",
-  "Historia e Identidad Nacional": "2026-07-04",
-  "Identidad Cultural": "2026-09-13",
-  "Cultura de Paz": "2026-09-13",
+  "Adaptación al Cambio Climático": "2026-07-21",
+  "Orientación Laboral": "2026-08-30",
+  "Historia e Identidad Nacional": "2026-07-21",
+  "Identidad Cultural": "2026-09-27",
+  "Cultura de Paz": "2026-09-27",
 };
 
 const ORDEN_MODULOS = [
