@@ -1,0 +1,327 @@
+/* ============================================================================
+   ANALI-TIC STYLES v2.0
+   ============================================================================
+   
+   Archivo de estilos CSS para la aplicación de análisis de calificaciones
+   Organizado en secciones temáticas para fácil mantenimiento y comprensión
+   
+   SECCIONES:
+   1. Estructura General y Capa de Carga
+   2. Estilos para Pantalla de Inicio (Upload Container)
+   3. Componentes de Navegación y Botones
+   4. Componentes de Tabla y Datos
+   5. Elementos de Formulario e Interacción
+   6. Áreas de Captura (html2canvas)
+   7. Utilidades y Clases Auxiliares
+   8. Pie de Página (Sticky Footer)
+   ============================================================================ */
+
+
+/* ============================================================================
+   SECCIÓN 1: ESTRUCTURA GENERAL Y CAPA DE CARGA
+   ============================================================================ */
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+#loader-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(8px);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  transition: opacity 0.3s ease;
+}
+
+
+/* ============================================================================
+   SECCIÓN 2: PANTALLA DE INICIO Y CARGA DE ARCHIVOS
+   ============================================================================ */
+
+.max-w-700 {
+  max-width: 700px;
+}
+
+.icon-shape {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upload-card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.upload-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+}
+
+.border-dashed {
+  border: 2px dashed #0d6efd !important;
+  transition: all 0.25s ease-in-out;
+}
+
+.border-dashed:hover {
+  background-color: #f8fafc !important;
+}
+
+
+/* ============================================================================
+   SECCIÓN 3: COMPONENTES DE NAVEGACIÓN Y BOTONES
+   ============================================================================ */
+
+/* Contenedor de píldoras/botones estilo Tailwind/Modern UI */
+.nav-pills-modern {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  background-color: #f1f5f9;
+  padding: 0.35rem;
+  border-radius: 0.75rem;
+}
+
+/* Botón píldora - Estado base */
+.btn-pill {
+  border: none;
+  background: transparent;
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.4rem 0.9rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Botón píldora - Estado hover */
+.btn-pill:hover {
+  background-color: rgba(255, 255, 255, 0.7);
+  color: #1e293b;
+}
+
+/* Botón píldora - Estado activo */
+.btn-pill.active {
+  background-color: #ffffff;
+  color: #0d6efd;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Botón extra pequeño (xs) - Para acciones compactas */
+.btn-xs {
+  padding: 0.15rem 0.4rem;
+  font-size: 0.72rem;
+  border-radius: 0.25rem;
+}
+
+
+/* ============================================================================
+   SECCIÓN 4: COMPONENTES DE TABLA Y DATOS
+   ============================================================================ */
+
+/* Tabla de análisis - Estructura base */
+.table-anali {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* Encabezados de tabla de análisis */
+.table-anali thead th {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+/* Tabla de avance - Estructura principal */
+.tabla-avance {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* Encabezados de tabla avance - Estilo pulido */
+.tabla-avance thead th {
+  background-color: #f8fafc !important;
+  color: #334155 !important;
+  font-weight: 700;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border-bottom: 2px solid #cbd5e1 !important;
+}
+
+/* Celdas en tabla avance - Alineación y espaciado */
+.tabla-avance th,
+.tabla-avance td {
+  vertical-align: middle !important;
+  padding: 0.45rem 0.65rem !important;
+}
+
+/* Columna de estudiante en tabla avance - Truncado elegante */
+.tabla-avance td.col-estudiante,
+.tabla-avance th.col-estudiante {
+  max-width: 240px;
+  min-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left !important;
+  vertical-align: middle;
+}
+
+/* Tabla de resultados - Estructura y dimensionado */
+#tabla-resultados {
+  width: auto !important;
+  margin: 0 auto;
+}
+
+/* Celdas en tabla de resultados - Alineación */
+#tabla-resultados th,
+#tabla-resultados td {
+  vertical-align: middle !important;
+  padding: 0.45rem 0.65rem !important;
+}
+
+/* Columna de estudiante en tabla resultados - Truncado elegante */
+#tabla-resultados .col-estudiante {
+  max-width: 250px;
+  min-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left !important;
+}
+
+/* Celda de convalidado - Estilo destacado */
+.cell-convalidado {
+  background-color: #cfe2ff !important;
+  color: #084298 !important;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  border: 1px solid #9ec5fe !important;
+}
+
+
+/* ============================================================================
+   SECCIÓN 5: ELEMENTOS DE FORMULARIO E INTERACCIÓN
+   ============================================================================ */
+
+/* Fila de estudiante - Interacción visual */
+.row-estudiante {
+  transition: background-color 0.15s ease-in-out;
+}
+
+.row-estudiante:hover {
+  background-color: #f8fafc !important;
+}
+
+/* Borde punteado inferior - Separador visual */
+.border-bottom-dashed {
+  border-bottom: 1px dashed #e2e8f0 !important;
+}
+
+.border-bottom-dashed:last-child {
+  border-bottom: none !important;
+}
+
+/* Barra de progreso - Estilo redondeado */
+.progress {
+  border-radius: 0.5rem;
+  background-color: #e2e8f0;
+}
+
+/* Área de captura de boleta - Contenedor principal */
+#area-captura-boleta {
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+}
+
+#area-captura-boleta h4 {
+  color: #0d6efd;
+  letter-spacing: -0.3px;
+}
+
+/* Nombre de cuestionario - Ajuste tipográfico multilínea */
+.cuestionario-item-nombre {
+  font-size: 0.76rem !important;
+  line-height: 1.25 !important;
+  color: #1e293b;
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+  max-width: 190px;
+}
+
+
+/* ============================================================================
+   SECCIÓN 6: ÁREAS DE CAPTURA (html2canvas)
+   ============================================================================ */
+
+#area-captura {
+  background-color: #ffffff !important;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+#seccionReporte table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+
+/* ============================================================================
+   SECCIÓN 7: UTILIDADES Y CLASES AUXILIARES
+   ============================================================================ */
+
+.x-small {
+  font-size: 0.75rem !important;
+}
+
+
+/* ============================================================================
+   SECCIÓN 8: PIE DE PÁGINA (STICKY FOOTER)
+   ============================================================================ */
+
+.footer-anali {
+  background-color: #ffffff !important;
+  border-top: 1px solid #e2e8f0;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
+}
+
+.footer-anali p,
+.footer-anali span {
+  color: #64748b;
+}
+
+.footer-anali strong {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.footer-anali .btn-outline-primary {
+  border-color: #0d6efd;
+  color: #0d6efd;
+  transition: all 0.2s ease-in-out;
+}
+
+.footer-anali .btn-outline-primary:hover {
+  background-color: #0d6efd;
+  color: #ffffff;
+  border-color: #0d6efd;
+}

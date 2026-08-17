@@ -1,0 +1,23 @@
+{
+    "id": "26_ihs_1semestre",
+    "nombre": "Identidad Histórica y Sociocultural de Nicaragua",
+    "convalidaciones_map": {
+        "Identidad Histórica y Sociocultural de Nicaragua": "conv_IHS"
+    },
+    "modulos": {
+        "Identidad Histórica y Sociocultural de Nicaragua": {
+            "Unidad 1": [
+                "Cuestionario:Act1.2-Cuest-Saberes ancestrales y populares de Nicaragua (Real)"
+            ],
+            "Unidad 2": [
+                "Cuestionario:Act.2.2-Cuest-Espíritu de resistencia por la soberanía y autodeterminación de Benjamín Zeledón a Sandino (Real)"
+            ],
+            "Unidad 3": [
+                "Cuestionario:Act.3.2-Cuest-La lucha del FSLN contra la dictadura militar somocista (Real)"
+            ],
+            "Unidad 4": [
+                "Cuestionario:Act.4.2-Cuest-El Pueblo Presidente a partir de 2007 (Real)"
+            ]
+        }
+    }
+}

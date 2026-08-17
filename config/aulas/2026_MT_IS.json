@@ -1,0 +1,86 @@
+{
+    "id": "26_1semestre_transversales",
+    "nombre": "Módulos Transversales I Semestre 2026",
+    "convalidaciones_map": {
+        "Historia e Identidad Nacional": "conv_HIN",
+        "Adaptación al Cambio Climático": "conv_ACC",
+        "Orientación Laboral": "conv_OL",
+        "Identidad Cultural": "conv_IC",
+        "Cultura de Paz": "conv_CP"
+    },
+    "modulos": {
+        "Historia e Identidad Nacional": {
+            "Unidad 1": [
+                "Cuestionario:Cuestionario UD1: Impacto de la invasión europea, resistencia popular e independencia de Centroamérica y Nicaragua (Real)",
+                "Cuestionario:Cuestionario UD1: La guerra nacional y la influencia británica en el caribe nicaragüense (Real)"
+            ],
+            "Unidad 2": [
+                "Cuestionario:Cuestionario UD2: Resistencia, soberanía y lucha contra la dictadura somocista (Real)",
+                "Cuestionario:Cuestionario UD2: Programa histórico y la Revolución Popular Sandinista (Real)",
+                "Cuestionario:Cuestionario UD2: Estatutos de Autonomía de la Costa Caribe (Real)",
+                "Cuestionario:Cuestionario UD2: Políticas de los gobiernos neoliberales (Real)",
+                "Cuestionario:Cuestionario UD2: Transformaciones del Gobierno de Reconciliación y Unidad Nacional en un Contexto Global Cambiante (Real)"
+            ],
+            "Unidad 3": [
+                "Cuestionario:Cuestionario UD3: El Patrimonio Nacional Nicaragüense (Real)"
+            ]
+        },
+        "Adaptación al Cambio Climático": {
+            "Unidad 1": [
+                "Cuestionario:Cuestionario UD1: Gestión ambiental de la contaminación y cambio climático. (Real)"
+            ],
+            "Unidad 2": [
+                "Cuestionario:Cuestionario UD2: Marco legal Nacional de los Sistemas de Gestión Ambiental. (Real)"
+            ],
+            "Unidad 3": [
+                "Cuestionario:Cuestionario UD3: Prácticas ambientales en la adaptación al cambio climático (Real)"
+            ],
+            "Unidad 4": [
+                "Cuestionario:Cuestionario UD4: Gestión de riesgos de desastres ante multiamenazas (Real)"
+            ]
+        },
+        "Orientación Laboral": {
+            "Unidad 1": [
+                "Cuestionario:Cuestionario UDI: Generalidades de la Orientación Laboral. (Real)"
+            ],
+            "Unidad 2": [
+                "Cuestionario:Cuestionario UDII: Marco Legal Laboral (Real)"
+            ],
+            "Unidad 3": [
+                "Cuestionario:Cuestionario UDIII: Requerimientos en la búsqueda de empleo. (Real)"
+            ],
+            "Unidad 4": [
+                "Cuestionario:Cuestionario 1 UDIV: Requerimientos en la entrevista laboral y capacitaciones técnica en el área de trabajo (Real)",
+                "Cuestionario:Cuestionario 2 UDIV: Educación en Valores (Real)"
+            ]
+        },
+        "Identidad Cultural": {
+            "Unidad 1": [
+                "Cuestionario:Cuestionario UD1: Conceptos de identidad cultural. (Real)",
+                "Cuestionario:Cuestionario UD1: Importancia identidad cultural (Real)"
+            ],
+            "Unidad 2": [
+                "Cuestionario:Cuestionario 1 de la UD2 (Real)",
+                "Cuestionario:Cuestionario 2 de la UD2 (Real)"
+            ],
+            "Unidad 3": [
+                "Cuestionario:Cuestionario 1 de la UD3 (Real)",
+                "Cuestionario:Cuestionario 2 de la UD3 (Real)"
+            ]
+        },
+        "Cultura de Paz": {
+            "Unidad 1": [
+                "Cuestionario:Cuestionario UI: Tema 2 Ley 985 Cultura de paz (Real)",
+                "Cuestionario:Cuestionario UI: Tema 3 Rol del ciudadano en la construcción de una cultura de paz (Real)"
+            ],
+            "Unidad 2": [
+                "Cuestionario:Cuestionario UII: Tema2 Habilidades Socioemocionales (Real)",
+                "Cuestionario:Cuestionario UII: Tema 3 Tipos de Valores (Real)"
+            ],
+            "Unidad 3": [
+                "Cuestionario:Cuestionario UIII: Tema 2 Principios y Valores (Real)",
+                "Cuestionario:Cuestionario UIII: Tema 3 Fundamentos del Código de conducta (Real)"
+            ]
+        }
+    }
+}
