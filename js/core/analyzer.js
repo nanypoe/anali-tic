@@ -3,37 +3,34 @@
 /**
  * Función auxiliar para obtener de forma flexible el valor de un objeto
  * buscando entre múltiples variantes de nombres de columnas.
- * Insensible a mayúsculas, minúsculas, tildes y espacios extra.
+ * Insensible a mayúsculas, minúsculas, tildes, espacios extra y símbolos.
  */
 function obtenerValorCampo(obj, posiblesClaves, valorDefecto = "") {
   if (!obj || typeof obj !== "object") return valorDefecto;
 
-  // Normalizar las claves existentes en el objeto fuente
   const mapaObjeto = new Map();
   for (const [key, val] of Object.entries(obj)) {
     const claveLimpia = key
       .toLowerCase()
       .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "") // Quita tildes
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9_]/g, "") // ¡AGREGAMOS EL GUION BAJO AQUÍ!
       .trim();
     mapaObjeto.set(claveLimpia, val);
   }
 
-  // Buscar coincidencia en la lista de nombres posibles
   for (const clave of posiblesClaves) {
-    const claveBuscada = clave
+    if (!clave) continue;
+    const claveBuscada = String(clave)
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9_]/g, "") // ¡Y AQUÍ!
       .trim();
 
     if (mapaObjeto.has(claveBuscada)) {
       const valor = mapaObjeto.get(claveBuscada);
-      if (
-        valor !== null &&
-        valor !== undefined &&
-        String(valor).trim() !== ""
-      ) {
+      if (valor !== null && valor !== undefined && String(valor).trim() !== "") {
         return String(valor).trim();
       }
     }
@@ -41,6 +38,18 @@ function obtenerValorCampo(obj, posiblesClaves, valorDefecto = "") {
 
   return valorDefecto;
 }
+/**
+ * Lista unificada de cabeceras de Correo Electrónico
+ */
+const CLAVES_CORREO = [
+  "correo",
+  "direccion de correo",
+  "email",
+  "email address",
+  "direccion de correo electronico",
+  "correo electronico",
+  "mail",
+];
 
 /**
  * Deduce el turno buscando palabras clave dentro de las cadenas de grupo/carrera.
@@ -60,96 +69,50 @@ function deducirTurno(texto) {
 function limpiarTextoGrupo(texto) {
   if (!texto) return "GENERAL";
   return texto
-    .replace(/^[,;.\s]+|[,;.\s]+$/g, "") // Remueve comas, puntos o espacios al inicio/final
-    .replace(/\s+/g, " ") // Convierte espacios múltiples en uno solo
+    .replace(/^[,;.\s]+|[,;.\s]+$/g, "")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
 export function analizarEstudiantes(datosDB, datosCalificaciones, configAula) {
-  // Correos administrativos o docentes a ignorar
   const correosIgnorados = [
     "renaldy.sanchez@tecnacional.edu.ni",
     "mitjoa307@gmail.com",
   ];
 
-  // 1. Mapear Base de Datos por correo electrónico (con normalización flexible de encabezados)
+  // 1. Mapear Base de Datos por correo electrónico
   const dbMap = new Map();
   if (Array.isArray(datosDB)) {
     datosDB.forEach((est) => {
-      const correo = obtenerValorCampo(est, [
-        "correo",
-        "direccion de correo",
-        "email",
-        "email address",
-        "direccion de correo electronico",
-        "Correo electrónico",
-      ]).toLowerCase();
-
+      const correo = obtenerValorCampo(est, CLAVES_CORREO).toLowerCase();
       if (correo) {
         dbMap.set(correo, est);
       }
     });
   }
 
-  // 2. Procesar expediente de cada estudiante filtrando correos ignorados
+  // 2. Procesar expediente de cada estudiante
   return datosCalificaciones
     .filter((estCal) => {
-      const correo = obtenerValorCampo(estCal, [
-        "direccion de correo",
-        "correo",
-        "email",
-        "email address",
-        "Correo eléctronico",
-      ]).toLowerCase();
-
+      const correo = obtenerValorCampo(estCal, CLAVES_CORREO).toLowerCase();
       return correo && !correosIgnorados.includes(correo);
     })
     .map((estCal) => {
-      const correo = obtenerValorCampo(estCal, [
-        "direccion de correo",
-        "correo",
-        "email",
-        "email address",
-        "Correo electrónico",
-      ]).toLowerCase();
-
-      // Buscar coincidencia en la DB cargada
+      const correo = obtenerValorCampo(estCal, CLAVES_CORREO).toLowerCase();
       const infoEstudiante = dbMap.get(correo) || null;
 
-      // 1.1 Normalización de Datos Personales (prioriza archivo de calificaciones, luego DB)
+      // 1.1 Normalización de Datos Personales
       const nombre =
-        obtenerValorCampo(estCal, [
-          "nombre",
-          "nombres",
-          "first name",
-          "protagonista",
-        ]) ||
-        obtenerValorCampo(
-          infoEstudiante,
-          ["nombre", "nombres", "first name"],
-          "Sin nombre",
-        );
+        obtenerValorCampo(estCal, ["nombre", "nombres", "first name", "protagonista"]) ||
+        obtenerValorCampo(infoEstudiante, ["nombre", "nombres", "first name"], "Sin nombre");
 
       const apellidos =
         obtenerValorCampo(estCal, ["apellido(s)", "apellidos", "last name"]) ||
-        obtenerValorCampo(
-          infoEstudiante,
-          ["apellido(s)", "apellidos", "last name"],
-          "",
-        );
+        obtenerValorCampo(infoEstudiante, ["apellido(s)", "apellidos", "last name"], "");
 
-      // 1.2 y 1.3 Extracción y Fallbacks de Grupos
-      const grupoRaw = obtenerValorCampo(infoEstudiante, [
-        "grupo",
-        "grupos",
-        "carrera",
-      ]);
-
-      const carreraRaw = obtenerValorCampo(infoEstudiante, [
-        "carrera",
-        "grupo",
-        "grupos",
-      ]);
+      // 1.2 y 1.3 Grupos y Turno
+      const grupoRaw = obtenerValorCampo(infoEstudiante, ["grupo", "grupos", "carrera"]);
+      const carreraRaw = obtenerValorCampo(infoEstudiante, ["carrera", "grupo", "grupos"]);
 
       const turnoVal =
         obtenerValorCampo(infoEstudiante, ["turno"]) ||
@@ -157,20 +120,11 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula) {
 
       const carreraVal = limpiarTextoGrupo(carreraRaw || grupoRaw || "GENERAL");
       const grupoVal = limpiarTextoGrupo(grupoRaw || carreraRaw || "GENERAL");
-      const codigoVal = obtenerValorCampo(
-        infoEstudiante,
-        ["codigo", "código"],
-        "N/D",
-      );
+      const codigoVal = obtenerValorCampo(infoEstudiante, ["codigo", "código"], "N/D");
 
-      // Construcción flexible de la etiqueta de grupo
       let etiquetaGrupo = "Sin Grupo Asignado";
       if (infoEstudiante || grupoRaw) {
-        if (
-          grupoVal !== "GENERAL" &&
-          carreraVal !== "GENERAL" &&
-          grupoVal !== carreraVal
-        ) {
+        if (grupoVal !== "GENERAL" && carreraVal !== "GENERAL" && grupoVal !== carreraVal) {
           etiquetaGrupo = `${grupoVal} - ${carreraVal.toUpperCase()}`;
         } else {
           etiquetaGrupo = grupoVal !== "GENERAL" ? grupoVal : carreraVal;
@@ -185,52 +139,48 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula) {
         etiquetaGrupo,
       };
 
-      // Datos de Contacto y Accesos (Fallbacks para DB simplificada)
       const datosContacto = {
-        telefono: obtenerValorCampo(
-          infoEstudiante,
-          ["telefono", "celular", "phone"],
-          "",
-        ),
-        usuario: obtenerValorCampo(
-          infoEstudiante,
-          ["usuario", "username", "user"],
-          "",
-        ),
-        contrasena: obtenerValorCampo(
-          infoEstudiante,
-          ["contrasena", "password", "pass"],
-          "",
-        ),
+        telefono: obtenerValorCampo(infoEstudiante, ["telefono", "celular", "phone"], ""),
+        usuario: obtenerValorCampo(infoEstudiante, ["usuario", "username", "user"], ""),
+        contrasena: obtenerValorCampo(infoEstudiante, ["contrasena", "password", "pass"], ""),
       };
 
-      // Estado académico del alumno
       const estadoEstudiante = obtenerValorCampo(
         infoEstudiante,
         ["estado", "status"],
-        "activo",
+        "activo"
       ).toLowerCase();
 
-      // Evaluación segura de convalidaciones
+      // Evaluación segura y flexible de convalidaciones
       const convalidaciones = {};
       if (configAula && configAula.convalidaciones_map) {
         for (let modKey in configAula.convalidaciones_map) {
-          const campoConv = configAula.convalidaciones_map[modKey];
-          const valConv = String(obtenerValorCampo(infoEstudiante, [campoConv]))
+          const campoConv = configAula.convalidaciones_map[modKey]; // ej: "conv_HIN"
+          
+          // Separemos el acrónimo (ej: "HIN" de "conv_HIN")
+          const acronimo = campoConv.replace("conv_", ""); 
+          
+          const posiblesNombresColumna = [
+            campoConv,        // "conv_HIN"
+            modKey,           // "Historia e Identidad Nacional"
+            acronimo,         // "HIN"
+            `conv_${modKey}`, // "conv_Historia e Identidad Nacional"
+            `convalidacion ${acronimo}`,
+            `convalidacion_${acronimo}`,
+          ];
+
+          const valConv = String(
+            obtenerValorCampo(infoEstudiante, posiblesNombresColumna)
+          )
             .toLowerCase()
             .trim();
+
           convalidaciones[modKey] = [
-            "si",
-            "sí",
-            "true",
-            "1",
-            "s",
-            "convalidado",
+            "si", "sí", "true", "1", "s", "convalidado", "convalidada", "x", "c", "ok", "aprobado", "v",
           ].includes(valConv);
         }
       }
 
-      // Estructura consolidada del estudiante
       const analisis = {
         nombre,
         apellidos,
@@ -244,9 +194,7 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula) {
         modulos: {},
       };
 
-      // Analizar los módulos según el archivo JSON de configuración del aula
-      const modulosConfig =
-        configAula && configAula.modulos ? configAula.modulos : {};
+      const modulosConfig = configAula && configAula.modulos ? configAula.modulos : {};
 
       for (let modNombre in modulosConfig) {
         let totalCuestionarios = 0;
@@ -256,33 +204,29 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula) {
         const estaConvalidado = Boolean(convalidaciones[modNombre]);
 
         for (let uni in modulosConfig[modNombre]) {
-          unidades[uni] = modulosConfig[modNombre][uni].map(
-            (cuestionarioKey) => {
-              totalCuestionarios++;
-              let notaRaw = estCal[cuestionarioKey];
-              let nota = estaConvalidado
-                ? 100
-                : notaRaw === "-" ||
-                    notaRaw === null ||
-                    notaRaw === undefined ||
-                    notaRaw === ""
-                  ? 0
-                  : parseFloat(notaRaw) || 0;
+          unidades[uni] = modulosConfig[modNombre][uni].map((cuestionarioKey) => {
+            totalCuestionarios++;
+            let notaRaw = estCal[cuestionarioKey];
+            let nota = estaConvalidado
+              ? 100
+              : notaRaw === "-" || notaRaw === null || notaRaw === undefined || notaRaw === ""
+                ? 0
+                : parseFloat(notaRaw) || 0;
 
-              if (nota >= 60) aprobadosCount++;
+            if (nota >= 60 || estaConvalidado) aprobadosCount++;
 
-              return {
-                nombreCuestionario: cuestionarioKey,
-                nota,
-                estado:
-                  nota >= 60
-                    ? "APROBADO"
-                    : nota > 0
-                      ? "REPROBADO"
-                      : "PENDIENTE",
-              };
-            },
-          );
+            return {
+              nombreCuestionario: cuestionarioKey,
+              nota,
+              estado: estaConvalidado
+                ? "CONVALIDADO"
+                : nota >= 60
+                  ? "APROBADO"
+                  : nota > 0
+                    ? "REPROBADO"
+                    : "PENDIENTE",
+            };
+          });
         }
 
         const porcentajeAvance =
