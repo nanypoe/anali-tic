@@ -29,7 +29,11 @@ function obtenerValorCampo(obj, posiblesClaves, valorDefecto = "") {
 
     if (mapaObjeto.has(claveBuscada)) {
       const valor = mapaObjeto.get(claveBuscada);
-      if (valor !== null && valor !== undefined && String(valor).trim() !== "") {
+      if (
+        valor !== null &&
+        valor !== undefined &&
+        String(valor).trim() !== ""
+      ) {
         return String(valor).trim();
       }
     }
@@ -57,7 +61,7 @@ function limpiarTextoGrupo(texto) {
   if (!texto) return "GENERAL";
   return texto
     .replace(/^[,;.\s]+|[,;.\s]+$/g, "") // Remueve comas, puntos o espacios al inicio/final
-    .replace(/\s+/g, " ")                // Convierte espacios múltiples en uno solo
+    .replace(/\s+/g, " ") // Convierte espacios múltiples en uno solo
     .trim();
 }
 
@@ -78,6 +82,7 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula) {
         "email",
         "email address",
         "direccion de correo electronico",
+        "Correo electrónico",
       ]).toLowerCase();
 
       if (correo) {
@@ -94,6 +99,7 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula) {
         "correo",
         "email",
         "email address",
+        "Correo eléctronico",
       ]).toLowerCase();
 
       return correo && !correosIgnorados.includes(correo);
@@ -104,6 +110,7 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula) {
         "correo",
         "email",
         "email address",
+        "Correo electrónico",
       ]).toLowerCase();
 
       // Buscar coincidencia en la DB cargada
@@ -111,12 +118,25 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula) {
 
       // 1.1 Normalización de Datos Personales (prioriza archivo de calificaciones, luego DB)
       const nombre =
-        obtenerValorCampo(estCal, ["nombre", "nombres", "first name"]) ||
-        obtenerValorCampo(infoEstudiante, ["nombre", "nombres", "first name"], "Sin nombre");
+        obtenerValorCampo(estCal, [
+          "nombre",
+          "nombres",
+          "first name",
+          "protagonista",
+        ]) ||
+        obtenerValorCampo(
+          infoEstudiante,
+          ["nombre", "nombres", "first name"],
+          "Sin nombre",
+        );
 
       const apellidos =
         obtenerValorCampo(estCal, ["apellido(s)", "apellidos", "last name"]) ||
-        obtenerValorCampo(infoEstudiante, ["apellido(s)", "apellidos", "last name"], "");
+        obtenerValorCampo(
+          infoEstudiante,
+          ["apellido(s)", "apellidos", "last name"],
+          "",
+        );
 
       // 1.2 y 1.3 Extracción y Fallbacks de Grupos
       const grupoRaw = obtenerValorCampo(infoEstudiante, [
@@ -137,12 +157,20 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula) {
 
       const carreraVal = limpiarTextoGrupo(carreraRaw || grupoRaw || "GENERAL");
       const grupoVal = limpiarTextoGrupo(grupoRaw || carreraRaw || "GENERAL");
-      const codigoVal = obtenerValorCampo(infoEstudiante, ["codigo", "código"], "N/D");
+      const codigoVal = obtenerValorCampo(
+        infoEstudiante,
+        ["codigo", "código"],
+        "N/D",
+      );
 
       // Construcción flexible de la etiqueta de grupo
       let etiquetaGrupo = "Sin Grupo Asignado";
       if (infoEstudiante || grupoRaw) {
-        if (grupoVal !== "GENERAL" && carreraVal !== "GENERAL" && grupoVal !== carreraVal) {
+        if (
+          grupoVal !== "GENERAL" &&
+          carreraVal !== "GENERAL" &&
+          grupoVal !== carreraVal
+        ) {
           etiquetaGrupo = `${grupoVal} - ${carreraVal.toUpperCase()}`;
         } else {
           etiquetaGrupo = grupoVal !== "GENERAL" ? grupoVal : carreraVal;
@@ -159,16 +187,28 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula) {
 
       // Datos de Contacto y Accesos (Fallbacks para DB simplificada)
       const datosContacto = {
-        telefono: obtenerValorCampo(infoEstudiante, ["telefono", "celular", "phone"], ""),
-        usuario: obtenerValorCampo(infoEstudiante, ["usuario", "username", "user"], ""),
-        contrasena: obtenerValorCampo(infoEstudiante, ["contrasena", "password", "pass"], ""),
+        telefono: obtenerValorCampo(
+          infoEstudiante,
+          ["telefono", "celular", "phone"],
+          "",
+        ),
+        usuario: obtenerValorCampo(
+          infoEstudiante,
+          ["usuario", "username", "user"],
+          "",
+        ),
+        contrasena: obtenerValorCampo(
+          infoEstudiante,
+          ["contrasena", "password", "pass"],
+          "",
+        ),
       };
 
       // Estado académico del alumno
       const estadoEstudiante = obtenerValorCampo(
         infoEstudiante,
         ["estado", "status"],
-        "activo"
+        "activo",
       ).toLowerCase();
 
       // Evaluación segura de convalidaciones
@@ -176,8 +216,17 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula) {
       if (configAula && configAula.convalidaciones_map) {
         for (let modKey in configAula.convalidaciones_map) {
           const campoConv = configAula.convalidaciones_map[modKey];
-          const valConv = obtenerValorCampo(infoEstudiante, [campoConv]).toLowerCase();
-          convalidaciones[modKey] = ["si", "sí", "true", "1"].includes(valConv);
+          const valConv = String(obtenerValorCampo(infoEstudiante, [campoConv]))
+            .toLowerCase()
+            .trim();
+          convalidaciones[modKey] = [
+            "si",
+            "sí",
+            "true",
+            "1",
+            "s",
+            "convalidado",
+          ].includes(valConv);
         }
       }
 
@@ -196,7 +245,8 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula) {
       };
 
       // Analizar los módulos según el archivo JSON de configuración del aula
-      const modulosConfig = configAula && configAula.modulos ? configAula.modulos : {};
+      const modulosConfig =
+        configAula && configAula.modulos ? configAula.modulos : {};
 
       for (let modNombre in modulosConfig) {
         let totalCuestionarios = 0;
@@ -206,28 +256,33 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula) {
         const estaConvalidado = Boolean(convalidaciones[modNombre]);
 
         for (let uni in modulosConfig[modNombre]) {
-          unidades[uni] = modulosConfig[modNombre][uni].map((cuestionarioKey) => {
-            totalCuestionarios++;
-            let notaRaw = estCal[cuestionarioKey];
-            let nota = estaConvalidado
-              ? 100
-              : notaRaw === "-" || notaRaw === null || notaRaw === undefined || notaRaw === ""
-                ? 0
-                : parseFloat(notaRaw) || 0;
+          unidades[uni] = modulosConfig[modNombre][uni].map(
+            (cuestionarioKey) => {
+              totalCuestionarios++;
+              let notaRaw = estCal[cuestionarioKey];
+              let nota = estaConvalidado
+                ? 100
+                : notaRaw === "-" ||
+                    notaRaw === null ||
+                    notaRaw === undefined ||
+                    notaRaw === ""
+                  ? 0
+                  : parseFloat(notaRaw) || 0;
 
-            if (nota >= 60) aprobadosCount++;
+              if (nota >= 60) aprobadosCount++;
 
-            return {
-              nombreCuestionario: cuestionarioKey,
-              nota,
-              estado:
-                nota >= 60
-                  ? "APROBADO"
-                  : nota > 0
-                    ? "REPROBADO"
-                    : "PENDIENTE",
-            };
-          });
+              return {
+                nombreCuestionario: cuestionarioKey,
+                nota,
+                estado:
+                  nota >= 60
+                    ? "APROBADO"
+                    : nota > 0
+                      ? "REPROBADO"
+                      : "PENDIENTE",
+              };
+            },
+          );
         }
 
         const porcentajeAvance =
@@ -236,7 +291,8 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula) {
             : 0;
 
         const completado =
-          estaConvalidado || (totalCuestionarios > 0 && aprobadosCount === totalCuestionarios);
+          estaConvalidado ||
+          (totalCuestionarios > 0 && aprobadosCount === totalCuestionarios);
 
         let badgeEstado = "PENDIENTE";
         if (analisis.estadoEstudiante === "retirado") {
