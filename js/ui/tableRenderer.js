@@ -1,15 +1,18 @@
 /* js/ui/tableRenderer.js */
 
-import { 
-  mostrarModalBoletaIndividual, 
-  copiarListaWhatsAppGrupal, 
-  mostrarModalCredenciales 
+import {
+  mostrarModalBoletaIndividual,
+  copiarListaWhatsAppGrupal,
+  mostrarModalCredenciales,
 } from "./modalRenderer.js";
+
+import { mostrarModalMetricasAula } from "./chartRenderer.js";
 
 let modoReporte = false;
 let moduloActivo = "";
 let grupoActivo = "TODOS";
 let filtroEstadoActivo = "TODOS";
+let mostrarRetiradosEnTodos = false;
 
 export function inicializarControlesTabla(datosEstudiantes, configAula) {
   const modulosNombres = Object.keys(configAula.modulos);
@@ -24,10 +27,20 @@ export function inicializarControlesTabla(datosEstudiantes, configAula) {
   // 3. Configurar Píldoras de Filtro de Estado
   configurarFiltrosEstado(datosEstudiantes, configAula);
 
-  // 4. Configurar Buscador y Captura de Pantalla
+  // 4. Configurar Buscador, Modo Reporte y Switch de Retirados
   const searchInput = document.getElementById("search-input");
   if (searchInput) {
-    searchInput.oninput = () => ejecutarRenderizado(datosEstudiantes, configAula);
+    searchInput.oninput = () =>
+      ejecutarRenderizado(datosEstudiantes, configAula);
+  }
+
+  const chkRetirados = document.getElementById("chk-mostrar-retirados");
+  if (chkRetirados) {
+    chkRetirados.checked = mostrarRetiradosEnTodos;
+    chkRetirados.onchange = (e) => {
+      mostrarRetiradosEnTodos = e.target.checked;
+      ejecutarRenderizado(datosEstudiantes, configAula);
+    };
   }
 
   const btnModoReporte = document.getElementById("btn-modo-reporte");
@@ -40,6 +53,14 @@ export function inicializarControlesTabla(datosEstudiantes, configAula) {
       btnModoReporte.classList.toggle("btn-dark");
       btnModoReporte.classList.toggle("btn-primary");
       ejecutarRenderizado(datosEstudiantes, configAula);
+    };
+  }
+
+  // INTEGRACIÓN FASE 3: BOTÓN DE ANÁLISIS DEL AULA
+  const btnMetricas = document.getElementById("btn-ver-tabla-grupos");
+  if (btnMetricas) {
+    btnMetricas.onclick = () => {
+      mostrarModalMetricasAula(datosEstudiantes, moduloActivo, configAula);
     };
   }
 
@@ -57,7 +78,7 @@ function renderizarPildorasModulos(modulos, datosEstudiantes, configAula) {
     <button class="btn-pill ${idx === 0 ? "active" : ""}" data-modulo="${mod}">
       <i class="bi bi-journal-bookmark"></i> ${mod}
     </button>
-  `
+  `,
     )
     .join("");
 
@@ -106,15 +127,25 @@ function configurarFiltrosEstado(datosEstudiantes, configAula) {
 
   container.querySelectorAll(".btn-pill").forEach((btn) => {
     btn.onclick = (e) => {
-      // Si el clic es sobre el badge de conteo (Completados/Pendientes), copia a WhatsApp
       const estadoAttr = btn.getAttribute("data-estado");
-      if (e.target.classList.contains("badge") && (estadoAttr === "COMPLETADO" || estadoAttr === "PENDIENTE")) {
-        const tipoWA = estadoAttr === "COMPLETADO" ? "COMPLETADOS" : "PENDIENTES";
-        copiarListaWhatsAppGrupal(datosEstudiantes, moduloActivo, grupoActivo, tipoWA);
+      if (
+        e.target.classList.contains("badge") &&
+        (estadoAttr === "COMPLETADO" || estadoAttr === "PENDIENTE")
+      ) {
+        const tipoWA =
+          estadoAttr === "COMPLETADO" ? "COMPLETADOS" : "PENDIENTES";
+        copiarListaWhatsAppGrupal(
+          datosEstudiantes,
+          moduloActivo,
+          grupoActivo,
+          tipoWA,
+        );
         return;
       }
 
-      container.querySelectorAll(".btn-pill").forEach((b) => b.classList.remove("active"));
+      container
+        .querySelectorAll(".btn-pill")
+        .forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
       filtroEstadoActivo = estadoAttr;
       ejecutarRenderizado(datosEstudiantes, configAula);
@@ -132,7 +163,7 @@ function ejecutarRenderizado(datosEstudiantes, configAula) {
     grupoActivo === "TODOS"
       ? datosEstudiantes
       : datosEstudiantes.filter(
-          (est) => est.grupoInfo && est.grupoInfo.etiquetaGrupo === grupoActivo
+          (est) => est.grupoInfo && est.grupoInfo.etiquetaGrupo === grupoActivo,
         );
 
   if (btnCaptura) {
@@ -144,28 +175,39 @@ function ejecutarRenderizado(datosEstudiantes, configAula) {
     filtrados = filtrados.filter((est) =>
       `${est.nombre} ${est.apellidos} ${est.correo}`
         .toLowerCase()
-        .includes(termino)
+        .includes(termino),
     );
   }
 
-  // 3. Recalcular Métricas Dinámicas por Selección
+  // 3. Recalcular Métricas Dinámicas
   actualizarBadgesMetricas(filtrados);
 
-  // 4. Filtrado por Estado
-  if (filtroEstadoActivo !== "TODOS") {
+  // 4. Filtrado por Estado (Excluye retirados en "TODOS" salvo si el switch está activado)
+  if (filtroEstadoActivo === "TODOS") {
+    if (!mostrarRetiradosEnTodos) {
+      filtrados = filtrados.filter((est) => est.estadoEstudiante !== "retirado");
+    }
+  } else {
     filtrados = filtrados.filter((est) => {
       const mod = est.modulos ? est.modulos[moduloActivo] : null;
       if (!mod) return false;
-      if (filtroEstadoActivo === "RETIRADO") return est.estadoEstudiante === "retirado";
+      if (filtroEstadoActivo === "RETIRADO")
+        return est.estadoEstudiante === "retirado";
       if (filtroEstadoActivo === "CONVALIDADO") return mod.estaConvalidado;
-      if (filtroEstadoActivo === "COMPLETADO") return mod.completado && !mod.estaConvalidado;
-      if (filtroEstadoActivo === "PENDIENTE") return !mod.completado && !mod.estaConvalidado && est.estadoEstudiante !== "retirado";
+      if (filtroEstadoActivo === "COMPLETADO")
+        return mod.completado && !mod.estaConvalidado;
+      if (filtroEstadoActivo === "PENDIENTE")
+        return (
+          !mod.completado &&
+          !mod.estaConvalidado &&
+          est.estadoEstudiante !== "retirado"
+        );
       return true;
     });
   }
 
   filtrados.sort((a, b) =>
-    a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" })
+    a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }),
   );
 
   renderizarTabla(filtrados, configAula);
@@ -173,7 +215,10 @@ function ejecutarRenderizado(datosEstudiantes, configAula) {
 
 function actualizarBadgesMetricas(estudiantesVisibles) {
   let tod = estudiantesVisibles.length;
-  let comp = 0, prog = 0, conv = 0, ret = 0;
+  let comp = 0,
+    prog = 0,
+    conv = 0,
+    ret = 0;
 
   estudiantesVisibles.forEach((est) => {
     const mod = est.modulos ? est.modulos[moduloActivo] : null;
@@ -210,7 +255,6 @@ export function renderizarTabla(datos, configAula) {
     return;
   }
 
-  // Encabezados
   let filaUni = `<tr>
     <th rowspan="2" class="align-middle text-start px-3 col-estudiante">Estudiante</th>
     <th rowspan="2" class="align-middle text-center col-acciones" style="width: 50px;">Credenciales</th>`;
@@ -232,7 +276,6 @@ export function renderizarTabla(datos, configAula) {
   filaCues += `</tr>`;
   head.innerHTML = filaUni + filaCues;
 
-  // Filas
   datos.forEach((est) => {
     const tr = document.createElement("tr");
     tr.className = "row-estudiante";
@@ -264,8 +307,15 @@ export function renderizarTabla(datos, configAula) {
     } else if (modData) {
       for (let uni in modData.unidades) {
         modData.unidades[uni].forEach((c) => {
-          let color = c.estado === "APROBADO" ? "#95f7c0" : c.estado === "REPROBADO" ? "#f3a2a2" : "#f3e2a3";
-          let contenido = modoReporte ? `<span style="font-size: 9px">${c.estado}</span>` : c.nota;
+          let color =
+            c.estado === "APROBADO"
+              ? "#95f7c0"
+              : c.estado === "REPROBADO"
+                ? "#f3a2a2"
+                : "#f3e2a3";
+          let contenido = modoReporte
+            ? `<span style="font-size: 9px">${c.estado}</span>`
+            : c.nota;
           filaHTML += `<td class="text-center fw-bold align-middle" style="background-color: ${color}; font-size: 0.72rem; border: 1px solid #dee2e6">${contenido}</td>`;
         });
       }
@@ -288,10 +338,9 @@ export function renderizarTabla(datos, configAula) {
     filaHTML += `<td class="text-center align-middle"><span class="badge ${badgeClase}">${textoEstado}</span></td>`;
     tr.innerHTML = filaHTML;
 
-    // Evento de apertura del modal pasando configAula
-    tr.onclick = () => mostrarModalBoletaIndividual(est, moduloActivo, configAula);
+    tr.onclick = () =>
+      mostrarModalBoletaIndividual(est, moduloActivo, configAula);
 
-    // Evento exclusivo del botón credenciales
     const btnCred = tr.querySelector(".btn-credenciales");
     if (btnCred) {
       btnCred.onclick = (e) => {
@@ -315,27 +364,24 @@ function capturarTablaComoImagen(datosEstudiantesVisibles = []) {
   btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Generando...`;
   btn.disabled = true;
 
-  // 1. Guardar estilos originales para restaurar después de la captura
   const estiloOriginalTablaWidth = tabla ? tabla.style.width : "";
   const estiloOriginalContenedorWidth = areaCaptura.style.width;
   const estiloOriginalDisplay = areaCaptura.style.display;
 
-  // 2. Ocultar temporalmente la columna "Acciones" (cabecera y celdas)
   const elementosAcciones = areaCaptura.querySelectorAll(".col-acciones");
   elementosAcciones.forEach((el) => {
     el.dataset.displayOriginal = el.style.display;
     el.style.display = "none";
   });
 
-  // 3. Reajustar el contenedor para que la imagen se adecue al contenido real
   if (tabla) tabla.style.width = "max-content";
   areaCaptura.style.width = "fit-content";
   areaCaptura.style.display = "inline-block";
 
-  // Obtener nombre de grupo y turno
   let textoGrupoSeleccionado = "TODOS_LOS_GRUPOS";
   if (grupoSelect && grupoSelect.selectedIndex >= 0) {
-    textoGrupoSeleccionado = grupoSelect.options[grupoSelect.selectedIndex].text.trim();
+    textoGrupoSeleccionado =
+      grupoSelect.options[grupoSelect.selectedIndex].text.trim();
   }
 
   let turno = "matutino";
@@ -348,7 +394,6 @@ function capturarTablaComoImagen(datosEstudiantesVisibles = []) {
     }
   }
 
-  // Insertar encabezado temporal decorativo para el PNG
   const headerTemporal = document.createElement("div");
   headerTemporal.id = "encabezado-captura-temp";
   headerTemporal.style.cssText = `
@@ -374,12 +419,17 @@ function capturarTablaComoImagen(datosEstudiantesVisibles = []) {
   const fechaStr = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(hoy.getDate()).padStart(2, "0")}`;
   const horaStr = `${String(hoy.getHours()).padStart(2, "0")}:${String(hoy.getMinutes()).padStart(2, "0")}`;
 
-  const grupoClean = textoGrupoSeleccionado.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_\-]/g, "");
+  const grupoClean = textoGrupoSeleccionado
+    .replace(/\s+/g, "_")
+    .replace(/[^a-zA-Z0-9_\-]/g, "");
   const turnoClean = turno.toLowerCase().replace(/\s+/g, "_");
   const nombreArchivo = `${fechaStr}_${horaStr}_Avance_${grupoClean}_${turnoClean}.png`;
 
-  // 4. Capturar con html2canvas
-  html2canvas(areaCaptura, { scale: 3, useCORS: true, backgroundColor: "#ffffff" })
+  html2canvas(areaCaptura, {
+    scale: 3,
+    useCORS: true,
+    backgroundColor: "#ffffff",
+  })
     .then((canvas) => {
       const link = document.createElement("a");
       link.download = nombreArchivo;
@@ -391,7 +441,6 @@ function capturarTablaComoImagen(datosEstudiantesVisibles = []) {
       alert("Error al capturar la imagen");
     })
     .finally(() => {
-      // 5. RESTAURAR la interfaz a su estado original
       elementosAcciones.forEach((el) => {
         el.style.display = el.dataset.displayOriginal || "";
         delete el.dataset.displayOriginal;

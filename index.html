@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="./css/styles.css" />
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
   <body class="bg-light d-flex flex-column min-vh-100">
     <div id="loader-overlay">
@@ -129,12 +130,19 @@
               <div id="pills-modulos" class="nav-pills-modern"></div>
             </div>
 
-            <div style="min-width: 280px">
-              <small class="text-muted d-block fw-bold mb-1">GRUPO :</small>
-              <select
-                id="grupo-selector"
-                class="form-select form-select-sm border-primary-subtle fw-bold text-primary"
-              ></select>
+            <div class="d-flex align-items-center gap-2" style="min-width: 320px">
+              <div class="flex-grow-1">
+                <small class="text-muted d-block fw-bold mb-1">GRUPO :</small>
+                <select
+                  id="grupo-selector"
+                  class="form-select form-select-sm border-primary-subtle fw-bold text-primary"
+                ></select>
+              </div>
+              <div class="mt-3">
+                <button id="btn-ver-tabla-grupos" class="btn btn-sm btn-outline-primary fw-bold shadow-sm">
+                  <i class="bi bi-pie-chart-fill me-1"></i> Análisis del Aula
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -143,7 +151,7 @@
           <div
             class="card-body p-3 d-flex flex-wrap align-items-center justify-content-between gap-2"
           >
-            <div id="pills-estados" class="nav-pills-modern">
+            <div id="pills-estados" class="nav-pills-modern align-items-center">
               <button class="btn-pill active" data-estado="TODOS">
                 👥 TODOS
                 <span id="badge-cnt-todos" class="badge bg-secondary ms-1"
@@ -176,6 +184,13 @@
                   >0</span
                 >
               </button>
+
+              <div class="form-check form-switch ms-3">
+                <input class="form-check-input" type="checkbox" id="chk-mostrar-retirados">
+                <label class="form-check-label small fw-semibold text-muted" for="chk-mostrar-retirados">
+                  Incluir retirados en TODOS
+                </label>
+              </div>
             </div>
 
             <div class="d-flex gap-2 align-items-center">
@@ -248,6 +263,7 @@
       </div>
     </footer>
 
+    <!-- MODAL 1: REPORTES INDIVIDUALES -->
     <div
       class="modal fade"
       id="modalBoletaIndividual"
@@ -273,6 +289,7 @@
       </div>
     </div>
 
+    <!-- MODAL 2: CREDENCIALES -->
     <div
       class="modal fade"
       id="modalCredenciales"
@@ -293,6 +310,74 @@
             ></button>
           </div>
           <div class="modal-body p-4"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 3: MÉTRICAS DE AULA -->
+    <div
+      class="modal fade"
+      id="modalMetricasAula"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+          <div class="modal-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
+            <h5 class="modal-title fs-6 fw-bold mb-0">
+              <i class="bi bi-pie-chart-fill me-2"></i> Análisis y Métricas del Aula
+            </h5>
+            <div class="d-flex align-items-center gap-2">
+              <select id="modal-modulo-selector" class="form-select form-select-sm bg-white text-primary fw-bold border-0 shadow-sm"></select>
+              <button
+                type="button"
+                class="btn-close btn-close-white"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+          </div>
+          <div class="modal-body p-4">
+            <ul class="nav nav-pills mb-3 border-bottom pb-2" id="pills-tab-metricas" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active btn-sm fw-semibold" id="pills-general-tab" data-bs-toggle="pill" data-bs-target="#pills-general" type="button" role="tab">
+                  <i class="bi bi-pie-chart me-1"></i> General
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link btn-sm fw-semibold" id="pills-grupal-tab" data-bs-toggle="pill" data-bs-target="#pills-grupal" type="button" role="tab">
+                  <i class="bi bi-table me-1"></i> Grupal
+                </button>
+              </li>
+            </ul>
+
+            <div class="tab-content" id="pills-tabContent-metricas">
+              <div class="tab-pane fade show active" id="pills-general" role="tabpanel">
+                <div class="d-flex justify-content-end mb-2">
+                  <button id="btn-descargar-grafico-png" class="btn btn-sm btn-outline-primary fw-bold">
+                    <i class="bi bi-camera me-1"></i> 📸 Descargar Gráfico PNG
+                  </button>
+                </div>
+                <div class="row justify-content-center align-items-center py-2">
+                  <div class="col-md-8 col-lg-6 text-center">
+                    <div class="chart-container">
+                      <canvas id="chartEstadoEstudiantes"></canvas>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tab-pane fade" id="pills-grupal" role="tabpanel">
+                <div class="d-flex justify-content-end mb-3">
+                  <button id="btn-exportar-resumen-excel" class="btn btn-sm btn-success fw-bold">
+                    <i class="bi bi-file-earmark-excel me-1"></i> 📊 Exportar Resumen a Excel
+                  </button>
+                </div>
+                <div id="tabla-resumen-grupos-container" class="table-responsive">
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
