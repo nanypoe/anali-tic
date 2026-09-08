@@ -8,8 +8,9 @@ export function mostrarModalBoletaIndividual(estudiante, moduloNombre, configAul
   if (!modalEl) return;
 
   const modData = estudiante.modulos ? estudiante.modulos[moduloNombre] : null;
+  const tipoAula = (configAula && configAula.tipo) ? String(configAula.tipo).toLowerCase().trim() : "modulo";
 
-  // Extraer cuestionarios y calcular avance / listado de detalles
+  // Extraer cuestionarios/actividades y calcular avance / listado de detalles
   let totalCuestionarios = 0;
   let cuestionariosCompletados = 0;
   const detallesCuestionarios = [];
@@ -22,7 +23,8 @@ export function mostrarModalBoletaIndividual(estudiante, moduloNombre, configAul
         // Obtener y limpiar el nombre real/descriptivo
         const nombreLimpio = obtenerYLimpiarNombreCuestionario(c, uniNombre, index, moduloNombre, configAula);
 
-        if (c.estado === "APROBADO" || c.estado === "CONVALIDADO") {
+        // En Cursos: "REALIZADO" o "CONVALIDADO". En Módulos: "APROBADO" o "CONVALIDADO".
+        if (c.estado === "REALIZADO" || c.estado === "APROBADO" || c.estado === "CONVALIDADO") {
           cuestionariosCompletados++;
         }
 
@@ -65,10 +67,13 @@ export function mostrarModalBoletaIndividual(estudiante, moduloNombre, configAul
     porcentaje, 
     detallesCuestionarios,
     esRetirado,
-    esConvalidado
+    esConvalidado,
+    tipoAula
   );
 
   const modalBody = modalEl.querySelector(".modal-body");
+  const etiquetaTipo = tipoAula === "curso" ? "CURSO:" : "MÓDULO:";
+  const etiquetaDetalle = tipoAula === "curso" ? "Detalle de Actividades" : "Detalle de Cuestionarios";
 
   // Construcción del HTML de la Boleta Individual
   modalBody.innerHTML = `
@@ -81,14 +86,14 @@ export function mostrarModalBoletaIndividual(estudiante, moduloNombre, configAul
         </div>
         <div class="text-end">
           <div class="mb-2">${estadoBadgeHTML}</div>
-          <small class="text-muted fw-bold d-block">MÓDULO/CURSO:</small>
+          <small class="text-muted fw-bold d-block">${etiquetaTipo}</small>
           <span class="fw-bold text-uppercase text-secondary">${moduloNombre}</span>
         </div>
       </div>
 
       <div class="mb-4">
         <div class="d-flex justify-content-between align-items-center mb-1">
-          <small class="fw-bold text-muted">Avance del módulo/curso</small>
+          <small class="fw-bold text-muted">Avance del Módulo/Curso</small>
           <small class="fw-bold text-primary">${porcentaje}%</small>
         </div>
         <div class="progress" style="height: 10px;">
@@ -96,10 +101,11 @@ export function mostrarModalBoletaIndividual(estudiante, moduloNombre, configAul
         </div>
       </div>
 
-      <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-journal-text me-1"></i>Detalle de Actividades</h6>
+      <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-journal-text me-1"></i>${etiquetaDetalle}</h6>
       <div class="row g-3 mb-3">
         ${renderizarDesgloseUnidadesConNombres(modData, esRetirado, esConvalidado, moduloNombre, configAula)}
-      
+      </div>
+    </div>
 
     <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mt-3 pt-3 border-top">
       <div>
@@ -109,7 +115,7 @@ export function mostrarModalBoletaIndividual(estudiante, moduloNombre, configAul
         </button>
       </div>
       <button class="btn btn-sm btn-success" id="btn-capturar-boleta">
-        <i class="bi bi-camera me-1"></i> Capturar reporte
+        <i class="bi bi-camera me-1"></i> Capturar Ficha (PNG)
       </button>
     </div>
   `;
@@ -134,7 +140,7 @@ export function mostrarModalBoletaIndividual(estudiante, moduloNombre, configAul
 }
 
 /**
- * Obtiene y sanitiza el nombre del cuestionario eliminando prefijos redundantes
+ * Obtiene y sanitiza el nombre del cuestionario/actividad eliminando prefijos redundantes
  */
 function obtenerYLimpiarNombreCuestionario(c, uniNombre, index, moduloNombre, configAula) {
   let nombreRaw = "";
@@ -152,6 +158,7 @@ function obtenerYLimpiarNombreCuestionario(c, uniNombre, index, moduloNombre, co
   let limpio = nombreRaw
     .replace(/^Cuestionario\s*(Evaluativo)?\s*(N[°ºo]?\s*\d+|\d+)?\s*[:\-–]?\s*/i, "")
     .replace(/^Cuestionario\s*[:\-–]?\s*/i, "")
+    .replace(/^(Tarea|Foro|Actividad)\s*[:\-–]?\s*/i, "")
     .trim();
 
   if (!limpio) {
@@ -162,7 +169,7 @@ function obtenerYLimpiarNombreCuestionario(c, uniNombre, index, moduloNombre, co
 }
 
 /**
- * Genera el desglose visual con ajuste de texto dinámico y multilínea
+ * Genera el desglose visual asignando el color del badge según el estado
  */
 function renderizarDesgloseUnidadesConNombres(modData, esRetirado, esConvalidado, moduloNombre, configAula) {
   if (esRetirado) {
@@ -187,7 +194,15 @@ function renderizarDesgloseUnidadesConNombres(modData, esRetirado, esConvalidado
             <ul class="list-group list-group-flush x-small">
               ${cuestionarios.map((c, i) => {
                 const nombreLimpio = obtenerYLimpiarNombreCuestionario(c, uniNombre, i, moduloNombre, configAula);
-                let badgeBg = c.estado === "APROBADO" ? "bg-success" : c.estado === "REPROBADO" ? "bg-danger" : "bg-warning text-dark";
+                
+                // ASIGNACIÓN DE COLOR DEL BADGE SEGÚN EL ESTADO
+                let badgeBg = "bg-warning text-dark"; // PENDIENTE por defecto
+                if (c.estado === "REALIZADO" || c.estado === "APROBADO") {
+                  badgeBg = "bg-success"; // Verde
+                } else if (c.estado === "REPROBADO") {
+                  badgeBg = "bg-danger"; // Rojo
+                }
+
                 return `
                   <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center py-2 px-1 border-bottom-dashed">
                     <div class="me-2 cuestionario-item-nombre" title="${nombreLimpio}">
@@ -212,34 +227,35 @@ function renderizarDesgloseUnidadesConNombres(modData, esRetirado, esConvalidado
 /**
  * Genera un texto en Markdown con el desglose detallado de pendientes para pegar en chat
  */
-function generarTextoReporteDetallado(estudiante, moduloNombre, porcentaje, detalles, esRetirado, esConvalidado) {
+function generarTextoReporteDetallado(estudiante, moduloNombre, porcentaje, detalles, esRetirado, esConvalidado, tipoAula) {
   const bloquesTotal = 10;
   const bloquesLlenos = Math.round((porcentaje / 100) * bloquesTotal);
   const barraAscii = "█".repeat(bloquesLlenos) + "░".repeat(bloquesTotal - bloquesLlenos);
+  const terminoAula = tipoAula === "curso" ? "CURSO" : "MÓDULO";
 
-  let msj = `*REPORTE DE AVANCE DE MÓDULO/CURSO*\n`;
-  msj += `Estudiante: *${estudiante.nombre} ${estudiante.apellidos}*\n`;
-  msj += `Módulo/Curso: *${moduloNombre}*\n`;
-  msj += `Estado de Avance: *${porcentaje}% [${barraAscii}]*\n`;
-  msj += `-----------------------------------\n \n`;
+  let msj = `📌 *REPORTE ACADÉMICO INDIVIDUAL*\n`;
+  msj += `👤 *Estudiante:* ${estudiante.nombre} ${estudiante.apellidos}\n`;
+  msj += `👥 *Grupo:* ${estudiante.grupoInfo?.etiquetaGrupo || 'Sin Grupo'}\n`;
+  msj += `📘 *${terminoAula}:* ${moduloNombre}\n`;
+  msj += `📊 *Avance General:* ${porcentaje}% [${barraAscii}]\n`;
+  msj += `-----------------------------------\n`;
 
   if (esRetirado) {
-    msj += `ESTADO: *Estudiante en condición de RETIRADO.*\n`;
+    msj += `⚠️ *ESTADO:* Estudiante en condición de RETIRADO.\n`;
   } else if (esConvalidado) {
-    msj += `ESTADO: *Módulo CONVALIDADO oficialmente.*\n`;
+    msj += `🎓 *ESTADO:* ${terminoAula} CONVALIDADO oficialmente.\n`;
   } else {
-    const pendientes = detalles.filter(d => d.estado !== "APROBADO" && d.estado !== "CONVALIDADO");
+    const pendientes = detalles.filter(d => d.estado !== "REALIZADO" && d.estado !== "APROBADO" && d.estado !== "CONVALIDADO");
     
     if (pendientes.length > 0) {
-      msj += `CUESTIONARIOS PENDIENTES: *${pendientes.length}*\n`;
+      msj += `⚠️ *ACTIVIDADES PENDIENTES / POR ENTREGAR:* (${pendientes.length})\n`;
       pendientes.forEach(item => {
-        const notaStr = item.nota !== undefined && item.nota !== null ? ` (Nota: ${item.nota})` : '';
-        msj += `${item.unidad}: *${item.nombre}${notaStr} - [${item.estado}]*\n`;
+        const notaStr = item.nota !== undefined && item.nota !== null && item.nota > 0 ? ` (Nota: ${item.nota})` : '';
+        msj += ` ❌ *${item.unidad}:* ${item.nombre}${notaStr} - [${item.estado}]\n`;
       });
-      msj += `\n¿QUÉ DEBE DE HACER AHORA?: *Por favor ingresar a la plataforma CAMPUS Virtual INATEC para realizar las actividades pendientes a la brevedad posible.*\n`;
-      msj += "A través del siguiente enlace: https://campus.tecnacional.edu.ni/login/index.php\n"
+      msj += `\n📢 *INDICACIÓN:* _Por favor ingresar a la plataforma CAMPUS Virtual INATEC para realizar las actividades pendientes a la brevedad posible._\n`;
     } else {
-      msj += `*¡EXCELENTE TRABAJO!* Has completado exitosamente todos los cuestionarios de este módulo/curso.\n`;
+      msj += `🎉 *¡EXCELENTE TRABAJO!* Has completado exitosamente todas las actividades de este ${terminoAula.toLowerCase()}.\n`;
     }
   }
   return msj;
@@ -259,7 +275,7 @@ function renderizarBotonWhatsAppDirecto(telefono, textoReporte) {
   } else {
     return `
       <button class="btn btn-sm btn-outline-secondary" disabled title="Sin número telefónico en DB Provisional">
-        <i class="bi bi-whatsapp me-1"></i> No disponible
+        <i class="bi bi-whatsapp me-1"></i> Sin N° Registrado
       </button>
     `;
   }
@@ -282,7 +298,7 @@ function capturarBoletaComoImagen(estudiante) {
 }
 
 /**
- * 2.2. Genera y copia la lista de estudiantes filtrados para WhatsApp
+ * Genera y copia la lista de estudiantes filtrados para WhatsApp
  */
 export function copiarListaWhatsAppGrupal(datosEstudiantes, moduloNombre, grupoSeleccionado, tipoEstado) {
   let filtrados = datosEstudiantes;
@@ -324,9 +340,6 @@ export function copiarListaWhatsAppGrupal(datosEstudiantes, moduloNombre, grupoS
   msj += tipoEstado === "PENDIENTES" 
     ? `_Por favor ponerse al día lo antes posible en el CAMPUS Virtual._\n` 
     : `_¡Felicidades por su excelente trabajo y cumplimiento!_\n`;
-  msj += `*Docentes TIC*\n`;
-  msj += `• Prof. Mitzy Aguilera (+505 86961191)\n`;
-  msj += `• Prof. Renaldy Sánchez (+505 57985106)`;
 
   navigator.clipboard.writeText(msj).then(() => {
     alert(`¡Lista de ${tipoEstado} copiada al portapapeles!`);
@@ -334,7 +347,7 @@ export function copiarListaWhatsAppGrupal(datosEstudiantes, moduloNombre, grupoS
 }
 
 /**
- * 2.3. Despliega el modal con las credenciales de acceso al CAMPUS
+ * Despliega el modal con las credenciales de acceso al CAMPUS
  */
 export function mostrarModalCredenciales(estudiante) {
   const modalEl = document.getElementById("modalCredenciales");

@@ -1,0 +1,28 @@
+{
+    "id": "26_curso_cia",
+    "nombre": "Control Interno Administrativo",
+    "tipo": "curso",
+    "modulos": {
+        "Control Interno Administrativo": {
+            "Unidad 1": [
+                "Foro:Foro: Objetivos Control Interno Contable. foro completo (Real)",
+                "Foro:Foro: Fundamentos de Control Interno foro completo (Real)",
+                "Foro:Foro: Fundamentos de Control Interno calificación (Real)",
+                "Foro:Foro: Objetivos Control Interno Contable. calificación (Real)",
+                "Cuestionario:Cuestionario UD1 (Real)"
+            ],
+            "Unidad 2": [
+                "Tarea:Tarea1 U2: Cuestionario de Control Interno (Real)",
+                "Tarea:Tarea 2 U2: Elaboración de Cuadro Sinóptico (Real)",
+                "Tarea:Tarea 3 U2: Mapa Semántico Conceptualización de las técnicas de control interno contable (Real)",
+                "Tarea:Tarea 4 U2: Informe de Evaluación (Real)"
+
+            ],
+            "Unidad 3": [
+                "Tarea:Tarea: Mapa Conceptual (Real)",
+                "Tarea:Tarea: Plan de mejoras al sistema de control interno (Real)",
+                "Tarea:Tarea: Mejoras el sistema de control interno. (Real)"
+            ]
+        }
+    }
+}

@@ -93,32 +93,18 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula, ma
     "djvg123@gmail.com"
   ];
 
-  // 1. Agrupar Base de Datos por Correo (guarda arreglos de registros duplicados legítimos)
   const dbMap = new Map();
   if (Array.isArray(datosDB)) {
     datosDB.forEach((est) => {
       const correo = obtenerValorCampo(est, CLAVES_CORREO).toLowerCase();
       if (correo) {
-        if (!dbMap.has(correo)) {
-          dbMap.set(correo, []);
-        }
-        dbMap.get(correo).push(est);
+        dbMap.set(correo, est);
       }
     });
   }
 
+  // Identificamos el tipo de aula ("modulo" o "curso"). Fallback a "modulo" si no viene definido.
   const tipoAula = (configAula && configAula.tipo) ? String(configAula.tipo).toLowerCase().trim() : "modulo";
-  const modulosAulaNombres = Object.keys(configAula?.modulos || {}).map(m => m.toLowerCase());
-
-  // 2. Extraer contexto de grupos del archivo de calificaciones actual
-  const gruposFrecuencia = new Map();
-  datosCalificaciones.forEach((estCal) => {
-    const g = obtenerValorCampo(estCal, ["grupo", "grupos"]);
-    if (g) {
-      const gLimpio = limpiarTextoGrupo(g);
-      gruposFrecuencia.set(gLimpio, (gruposFrecuencia.get(gLimpio) || 0) + 1);
-    }
-  });
 
   return datosCalificaciones
     .filter((estCal) => {
@@ -127,46 +113,7 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula, ma
     })
     .map((estCal) => {
       const correo = obtenerValorCampo(estCal, CLAVES_CORREO).toLowerCase();
-      const registrosCandidatos = dbMap.get(correo) || [];
-      
-      let infoEstudiante = null;
-
-      if (registrosCandidatos.length === 1) {
-        infoEstudiante = registrosCandidatos[0];
-      } else if (registrosCandidatos.length > 1) {
-        // DISCRIMINACIÓN INTELIGENTE DE DUPLICADOS (Ej: KATY)
-        const grupoCalRaw = obtenerValorCampo(estCal, ["grupo", "grupos"]);
-        const grupoCal = grupoCalRaw ? limpiarTextoGrupo(grupoCalRaw).toLowerCase() : "";
-
-        // Intentar coincidencia exacta con el grupo que viene en la hoja de calificaciones
-        if (grupoCal) {
-          infoEstudiante = registrosCandidatos.find((cand) => {
-            const gCand = obtenerValorCampo(cand, ["grupo", "grupos", "carrera"]).toLowerCase();
-            return gCand.includes(grupoCal) || grupoCal.includes(gCand);
-          });
-        }
-
-        // Si no hubo coincidencia por grupo directo, buscar por coincidencia con el nombre del módulo/curso
-        if (!infoEstudiante) {
-          infoEstudiante = registrosCandidatos.find((cand) => {
-            const gCand = obtenerValorCampo(cand, ["grupo", "grupos", "carrera"]).toLowerCase();
-            return modulosAulaNombres.some(modNombre => gCand.includes(modNombre) || modNombre.includes(gCand));
-          });
-        }
-
-        // Fallback: seleccionar la fila cuya propiedad de grupo coincida con el grupo predominantemente masivo en las notas
-        if (!infoEstudiante) {
-          infoEstudiante = registrosCandidatos.find((cand) => {
-            const gCand = limpiarTextoGrupo(obtenerValorCampo(cand, ["grupo", "grupos", "carrera"]));
-            return gruposFrecuencia.has(gCand);
-          });
-        }
-
-        // Fallback final: primer registro
-        if (!infoEstudiante) {
-          infoEstudiante = registrosCandidatos[0];
-        }
-      }
+      const infoEstudiante = dbMap.get(correo) || null;
 
       const nombre =
         obtenerValorCampo(estCal, ["nombre", "nombres", "first name", "protagonista"]) ||
@@ -274,7 +221,7 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula, ma
 
       for (let modNombre in modulosConfig) {
         let totalCuestionarios = 0;
-        let entregadosCount = 0;
+        let entregadosCount = 0; // Cuenta actividades realizadas (en cursos) o aprobadas (en módulos)
         let unidades = {};
 
         const estaConvalidado = Boolean(convalidaciones[modNombre]);
@@ -284,6 +231,7 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula, ma
             totalCuestionarios++;
             let notaRaw = estCal[cuestionarioKey];
             
+            // Verificamos si existe un valor/nota registrada distinta de vacío o "-"
             let tieneEntrega = !(notaRaw === "-" || notaRaw === null || notaRaw === undefined || String(notaRaw).trim() === "");
             let nota = estaConvalidado
               ? 100
@@ -297,6 +245,7 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula, ma
               estadoActividad = "CONVALIDADO";
               entregadosCount++;
             } else if (tipoAula === "curso") {
+              // Lógica de CURSO: Presencia de dato numérico/nota indica realización
               if (tieneEntrega) {
                 estadoActividad = "REALIZADO";
                 entregadosCount++;
@@ -304,6 +253,7 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula, ma
                 estadoActividad = "PENDIENTE";
               }
             } else {
+              // Lógica de MÓDULO: Cuantitativa rígida (>= 60)
               if (nota >= 60) {
                 estadoActividad = "APROBADO";
                 entregadosCount++;

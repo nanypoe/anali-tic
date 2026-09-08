@@ -3,7 +3,7 @@
     "nombre": "Excel Avanzado",
     "tipo": "curso",
     "modulos": {
-        "Excel Básico": {
+        "Excel Avanzado": {
             "Unidad 1": [
                 "Cuestionario:Cuestionario Formatos Numericos (Real)",
                 "Tarea:Tarea 1: Archivo importado desde Access (Real)",

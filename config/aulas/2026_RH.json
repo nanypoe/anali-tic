@@ -1,0 +1,27 @@
+{
+    "id": "26_curso_rh",
+    "nombre": "Relaciones Humanas",
+    "tipo": "curso",
+    "modulos": {
+        "Relaciones Humanas": {
+            "Unidad 1": [
+                "Foro:Actividad 1.1 - Foro: Actitud Positiva foro completo (Real)",
+                "Foro:Actividad 1.1 - Foro: Actitud Positiva calificación (Real)",
+                "Cuestionario:Actividad 1.2- Cuestionario - Conceptos Generales de las Relaciones Humanas (Real)",
+                "Tarea:Actividad 1.3 - Tarea 1 - . primera unidad (Real)"
+            ],
+            "Unidad 2": [
+                "Cuestionario:Actividad 2.1: Actitudes y Autoestima: Autoevaluación 1:U2 (Real)",
+                "Foro:Actividad 2.2-Foro discusión del Vídeo Importancia de las actitudes y el autoestima. foro completo (Real)",
+                "Tarea:Actividad 2.3 - Envío de Tarea. U-2 (Real)",
+                "Tarea:Tarea 4 U2: Informe de Evaluación (Real)"
+
+            ],
+            "Unidad 3": [
+                "Cuestionario:Actividad 3.1 - Cuestionario UD3 -El cambio hacia la excelencia - (Real)",
+                "Tarea:Actividad 3.2 - Tarea - Mi plan para alcanzar la excelencia. (Real)",
+                "Tarea:Actividad 3.3 - Trabajo Final - (Real)"
+            ]
+        }
+    }
+}

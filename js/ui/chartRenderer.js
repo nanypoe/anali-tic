@@ -94,7 +94,7 @@ export function renderizarGraficoDona(datosEstudiantes = [], moduloNombre = "") 
   miChart = new Chart(ctx, {
     type: "doughnut",
     data: {
-      labels: ["Completados 🟢", "En Progreso 🟡", "Sin Iniciar 🟠", "Retirados ⚪"],
+      labels: ["Completados", "En Progreso", "Sin Iniciar", "Retirados"],
       datasets: [
         {
           data: [completados, enProgreso, sinIniciar, retirados],
@@ -161,7 +161,7 @@ export function renderizarGraficoDona(datosEstudiantes = [], moduloNombre = "") 
 /**
  * Exporta el gráfico en formato PNG con marcas de texto numéricas.
  */
-function descargarGraficoComoImagen(moduloNombre, total, datos) {
+function descargarGraficoComoImagen(moduloNombre, total) {
   const canvas = document.getElementById("chartEstadoEstudiantes");
   if (!canvas) return;
 
