@@ -81,14 +81,14 @@ export function mostrarModalBoletaIndividual(estudiante, moduloNombre, configAul
         </div>
         <div class="text-end">
           <div class="mb-2">${estadoBadgeHTML}</div>
-          <small class="text-muted fw-bold d-block">MÓDULO:</small>
+          <small class="text-muted fw-bold d-block">MÓDULO/CURSO:</small>
           <span class="fw-bold text-uppercase text-secondary">${moduloNombre}</span>
         </div>
       </div>
 
       <div class="mb-4">
         <div class="d-flex justify-content-between align-items-center mb-1">
-          <small class="fw-bold text-muted">Avance del Módulo</small>
+          <small class="fw-bold text-muted">Avance del módulo/curso</small>
           <small class="fw-bold text-primary">${porcentaje}%</small>
         </div>
         <div class="progress" style="height: 10px;">
@@ -99,28 +99,7 @@ export function mostrarModalBoletaIndividual(estudiante, moduloNombre, configAul
       <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-journal-text me-1"></i>Detalle de Cuestionarios</h6>
       <div class="row g-3 mb-3">
         ${renderizarDesgloseUnidadesConNombres(modData, esRetirado, esConvalidado, moduloNombre, configAula)}
-      </div>
-
-      <div class="mt-4 pt-3 border-top text-muted x-small">
-        <div class="d-flex justify-content-between align-items-start mb-2">
-          <div>
-            <i class="bi bi-pen-fill me-1 text-primary"></i>
-            <strong>Prof. Mitzy Aguilera</strong><br>
-            <span class="text-secondary"><i class="bi bi-whatsapp me-1"></i>+505 86961191</span>
-          </div>
-
-          <div class="text-end">
-            <i class="bi bi-pen-fill me-1 text-primary"></i>
-            <strong>Prof. Renaldy Sánchez</strong><br>
-            <span class="text-secondary"><i class="bi bi-whatsapp me-1"></i>+505 57985106</span>
-          </div>
-        </div>
-
-        <div class="text-center pt-2 border-top-dashed text-secondary">
-          <span>Centro Tecnológico Che Guevara - Somoto</span>
-        </div>
-      </div>
-    </div>
+      
 
     <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mt-3 pt-3 border-top">
       <div>
@@ -238,9 +217,9 @@ function generarTextoReporteDetallado(estudiante, moduloNombre, porcentaje, deta
   const bloquesLlenos = Math.round((porcentaje / 100) * bloquesTotal);
   const barraAscii = "█".repeat(bloquesLlenos) + "░".repeat(bloquesTotal - bloquesLlenos);
 
-  let msj = `*REPORTE DE AVANCE DE MÓDULO TRANSVERSAL*\n`;
+  let msj = `*REPORTE DE AVANCE DE MÓDULO/CURSO*\n`;
   msj += `Estudiante: *${estudiante.nombre} ${estudiante.apellidos}*\n`;
-  msj += `Módulo: *${moduloNombre}*\n`;
+  msj += `Módulo/Curso: *${moduloNombre}*\n`;
   msj += `Estado de Avance: *${porcentaje}% [${barraAscii}]*\n`;
   msj += `-----------------------------------\n \n`;
 
@@ -260,7 +239,7 @@ function generarTextoReporteDetallado(estudiante, moduloNombre, porcentaje, deta
       msj += `\n¿QUÉ DEBE DE HACER AHORA?: *Por favor ingresar a la plataforma CAMPUS Virtual INATEC para realizar las actividades pendientes a la brevedad posible.*\n`;
       msj += "A través del siguiente enlace: https://campus.tecnacional.edu.ni/login/index.php\n"
     } else {
-      msj += `*¡EXCELENTE TRABAJO!* Has completado exitosamente todos los cuestionarios de este módulo.\n`;
+      msj += `*¡EXCELENTE TRABAJO!* Has completado exitosamente todos los cuestionarios de este módulo/curso.\n`;
     }
   }
   return msj;
@@ -333,7 +312,7 @@ export function copiarListaWhatsAppGrupal(datosEstudiantes, moduloNombre, grupoS
   const emojiBullet = tipoEstado === "COMPLETADOS" ? "✅" : "⚠️";
   const titulo = tipoEstado === "COMPLETADOS" ? "ESTUDIANTES COMPLETADOS" : "ESTUDIANTES PENDIENTES";
 
-  let msj = `*${titulo} - MÓDULO: ${moduloNombre}* ${emojiHeader}\n`;
+  let msj = `*${titulo} - MÓDULO/CURSO: ${moduloNombre}* ${emojiHeader}\n`;
   msj += `👥 Grupo: ${grupoSeleccionado}\n`;
   msj += `--------------------------------\n`;
 

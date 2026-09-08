@@ -1,0 +1,25 @@
+{
+    "id": "26_curso_eb",
+    "nombre": "Excel Básico",
+    "tipo": "curso",
+    "modulos": {
+        "Excel Básico": {
+            "Unidad 1": [
+                "Cuestionario:Cuestionario UD1 (Real)",
+                "Tarea:Tarea1 UD1 - Vistas del Libro (Real)"
+            ],
+            "Unidad 2": [
+                "Tarea:Tarea1 UD2 -Filas y Columnas (Real)",
+                "Tarea:Tarea2 UD2- Formato de Celda (Real)"
+            ],
+            "Unidad 3": [
+                "Tarea:Tarea 2 UD3- Fórmulas y Funciones (Real)",
+                "Tarea:Tarea 1 UD3- Operadores y Preferencias (Real)"
+            ],
+            "Unidad 4": [
+                "Tarea:Tarea1 UD4 - Gráficos (Real)",
+                "Tarea:Tarea2 UD4- Proyecto Final (Real)"
+            ]
+        }
+    }
+}

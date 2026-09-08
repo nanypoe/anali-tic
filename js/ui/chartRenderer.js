@@ -179,7 +179,7 @@ function descargarGraficoComoImagen(moduloNombre, total, datos) {
   tempCtx.fillStyle = "#0d6efd";
   tempCtx.font = "bold 18px system-ui, sans-serif";
   tempCtx.textAlign = "center";
-  tempCtx.fillText(`ANÁLISIS GENERAL DE AULA - MÓDULO: ${moduloNombre.toUpperCase()}`, tempCanvas.width / 2, 35);
+  tempCtx.fillText(`ANÁLISIS GENERAL DE AULA - MÓDULO/CURSO: ${moduloNombre.toUpperCase()}`, tempCanvas.width / 2, 35);
 
   tempCtx.fillStyle = "#6c757d";
   tempCtx.font = "13px system-ui, sans-serif";
@@ -449,7 +449,7 @@ export function mostrarModalMetricasAula(datosEstudiantes, moduloNombreActual, c
   if (selectorModuloModal && configAula && configAula.modulos) {
     const listaModulos = Object.keys(configAula.modulos);
     selectorModuloModal.innerHTML = listaModulos
-      .map((mod) => `<option value="${mod}" ${mod === moduloSeleccionadoModal ? "selected" : ""}>Módulo: ${mod}</option>`)
+      .map((mod) => `<option value="${mod}" ${mod === moduloSeleccionadoModal ? "selected" : ""}>Módulo/Curso: ${mod}</option>`)
       .join("");
 
     selectorModuloModal.onchange = (e) => {

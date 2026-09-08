@@ -1,5 +1,5 @@
 export async function detectarConfiguracionAula(columnasCalificaciones) {
-  const archivosAulas = ['2026_MT_IS.json', '2026_MT_IIS.json', '2026_IHS_IS.json'];
+  const archivosAulas = ['2026_MT_IS.json', '2026_MT_IIS.json', '2026_IHS_IS.json', '2026_EB.json'];
   
   let mejorConfig = null;
   let maxCoincidencias = 0;

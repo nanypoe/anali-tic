@@ -255,26 +255,36 @@ export function renderizarTabla(datos, configAula) {
     return;
   }
 
-  let filaUni = `<tr>
-    <th rowspan="2" class="align-middle text-start px-3 col-estudiante">Estudiante</th>
-    <th rowspan="2" class="align-middle text-center col-acciones" style="width: 50px;">Credenciales</th>`;
-  let filaCues = `<tr>`;
-
   const unidadesConfig = configAula.modulos[moduloActivo];
-  let totalCuestionariosModulo = 0;
+let totalCuestionariosModulo = 0;
+let filaCues = `<tr>`;
 
-  for (let uni in unidadesConfig) {
-    const cuestionarios = unidadesConfig[uni];
-    totalCuestionariosModulo += cuestionarios.length;
-    filaUni += `<th colspan="${cuestionarios.length}" class="bg-primary text-white p-1 text-center" style="font-size: 0.68rem">${uni}</th>`;
-    cuestionarios.forEach((c, i) => {
-      filaCues += `<th title="${c}" class="text-center" style="font-size: 0.65rem; min-width: 42px">C${i + 1}</th>`;
-    });
-  }
+// 1. Primero calculamos el total de actividades (A1, A2...) en todo el módulo
+for (let uni in unidadesConfig) {
+  totalCuestionariosModulo += unidadesConfig[uni].length;
+}
 
-  filaUni += `<th rowspan="2" class="align-middle text-center">Estado</th></tr>`;
-  filaCues += `</tr>`;
-  head.innerHTML = filaUni + filaCues;
+// 2. Fila superior: Estudiante, Credenciales, Encabezado General de ACTIVIDADES y Estado
+let filaUni = `<tr>
+  <th rowspan="3" class="align-middle text-start px-3 col-estudiante">Estudiante</th>
+  <th rowspan="3" class="align-middle text-center col-acciones" style="width: 50px;">Credenciales</th>
+  <th colspan="${totalCuestionariosModulo}" class="text-center fw-bold col-actividades align-middle" style="letter-spacing: 1px;">ACTIVIDADES</th>
+  <th rowspan="3" class="align-middle text-center">Estado</th>
+</tr><tr>`;
+
+// 3. Segunda fila (Unidades) y Tercera fila (Sub-actividades A1, A2...)
+for (let uni in unidadesConfig) {
+  const cuestionarios = unidadesConfig[uni];
+  filaUni += `<th colspan="${cuestionarios.length}" class="bg-primary text-white p-1 text-center" style="font-size: 0.65rem">${uni}</th>`;
+  cuestionarios.forEach((c, i) => {
+    filaCues += `<th title="${c}" class="text-center" style="font-size: 0.65rem; min-width: 42px">A${i + 1}</th>`;
+  });
+}
+
+filaUni += `</tr>`;
+filaCues += `</tr>`;
+
+head.innerHTML = filaUni + filaCues;
 
   datos.forEach((est) => {
     const tr = document.createElement("tr");
@@ -409,7 +419,7 @@ function capturarTablaComoImagen(datosEstudiantesVisibles = []) {
       ${textoGrupoSeleccionado}
     </h2>
     <h5 style="margin: 5px 0 0 0; font-size: 1rem; color: #6c757d; text-transform: capitalize;">
-      Turno: ${turno} | Módulo: ${moduloActivo}
+      Turno: ${turno} | Módulo/Curso: ${moduloActivo}
     </h5>
   `;
 

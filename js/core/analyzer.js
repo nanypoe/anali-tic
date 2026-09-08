@@ -78,6 +78,8 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula) {
   const correosIgnorados = [
     "renaldy.sanchez@tecnacional.edu.ni",
     "mitjoa307@gmail.com",
+    "djvg123@gmail.com",
+    "olivasc226@gmail.com"
   ];
 
   // 1. Mapear Base de Datos por correo electrónico
