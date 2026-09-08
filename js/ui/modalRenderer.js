@@ -96,7 +96,7 @@ export function mostrarModalBoletaIndividual(estudiante, moduloNombre, configAul
         </div>
       </div>
 
-      <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-journal-text me-1"></i>Detalle de Cuestionarios</h6>
+      <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-journal-text me-1"></i>Detalle de Actividades</h6>
       <div class="row g-3 mb-3">
         ${renderizarDesgloseUnidadesConNombres(modData, esRetirado, esConvalidado, moduloNombre, configAula)}
       
@@ -146,7 +146,7 @@ function obtenerYLimpiarNombreCuestionario(c, uniNombre, index, moduloNombre, co
   }
 
   if (!nombreRaw) {
-    nombreRaw = c.headerOriginal || c.nombre || `Cuestionario ${index + 1}`;
+    nombreRaw = c.headerOriginal || c.nombre || `Actividad ${index + 1}`;
   }
 
   let limpio = nombreRaw
@@ -158,7 +158,7 @@ function obtenerYLimpiarNombreCuestionario(c, uniNombre, index, moduloNombre, co
     limpio = nombreRaw;
   }
 
-  return `C${index + 1}: ${limpio}`;
+  return `A${index + 1}: ${limpio}`;
 }
 
 /**

@@ -1,0 +1,33 @@
+{
+    "id": "26_curso_ea",
+    "nombre": "Excel Avanzado",
+    "tipo": "curso",
+    "modulos": {
+        "Excel Básico": {
+            "Unidad 1": [
+                "Cuestionario:Cuestionario Formatos Numericos (Real)",
+                "Tarea:Tarea 1: Archivo importado desde Access (Real)",
+                "Tarea:Tarea 2: Formato Condicional (Real)",
+                "Tarea:Tarea 3: Formato Numérico (Real)",
+                "Tarea:Actividad 4: Subir archivo finalizado sobre Formato Personalizado (Real)"
+            ],
+            "Unidad 2": [
+                "Cuestionario:Cuestionario Evaluación de Funciones (Real)",
+                "Tarea:Evaluación Función SI (Real)",
+                "Tarea:Evaluación Funciones (Real)"
+
+            ],
+            "Unidad 3": [
+                "Cuestionario:Cuestionario Auditorias y Macros (Real)",
+                "Tarea:Intervalos y Macros (Real)",
+                "Tarea:Evaluación Creación de Macros (Real)"
+            ],
+            "Unidad 4": [
+                "Cuestionario:Cuestionario Consolidado de hojas de Datos (Real)",
+                "Tarea:Consolidación de Hojas de Datos (Real)",
+                "Tarea:Tablas Dinámicas (Real)",
+                "Tarea:Captura de Pantalla - Uso de Formularios (Real)"
+            ]
+        }
+    }
+}

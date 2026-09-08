@@ -1,6 +1,7 @@
 {
     "id": "26_ihs_1semestre",
     "nombre": "Identidad Histórica y Sociocultural de Nicaragua",
+    "tipo":"modulo",
     "convalidaciones_map": {
         "Identidad Histórica y Sociocultural de Nicaragua": "conv_IHS"
     },

@@ -1,6 +1,7 @@
 {
     "id": "26_1semestre_transversales",
     "nombre": "Módulos Transversales I Semestre 2026",
+    "tipo":"modulo",
     "convalidaciones_map": {
         "Historia e Identidad Nacional": "conv_HIN",
         "Adaptación al Cambio Climático": "conv_ACC",
