@@ -1,0 +1,28 @@
+{
+    "id": "26_curso_ho",
+    "nombre": "Herramientas Ofimáticas",
+    "tipo": "curso",
+    "modulos": {
+        "Herramientas Ofimáticas": {
+            "Unidad 1": [
+                "Cuestionario:Test de evaluación 1 (Real)",
+                "Cuestionario:Test de evaluación 2 (Real)",
+                "Tarea:Guía de trabajo - Unidad I (Real)"
+            ],
+            "Unidad 2": [
+                "Foro:Configuración de Documentos",
+                "Cuestionario:Cuestionario de la Unidad 2 (Real)",
+                "Tarea:Guía de trabajo - Unidad 2 (Real)"
+
+            ],
+            "Unidad 3": [
+                "Tarea:Guía de trabajo - Unidad 3 (Real)"
+            ],
+            "Unidad 4": [
+                "Cuestionario:Test de evaluación - Unidad 4 Cuestionario (Real)",
+                "Foro:Creación de una Presentación eficaz",
+                "Tarea:Guía de trabajo - Unidad 4 (Real)"
+            ]
+        }
+    }
+}
