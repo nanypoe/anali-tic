@@ -7,6 +7,8 @@ import {
 } from "./modalRenderer.js";
 
 import { mostrarModalMetricasAula } from "./chartRenderer.js";
+import { mostrarModalExportacionPendientes } from "./exportRenderer.js";
+import { mostrarModalEsquela } from "./esquelaRenderer.js";
 
 let modoReporte = false;
 let moduloActivo = "";
@@ -61,6 +63,24 @@ export function inicializarControlesTabla(datosEstudiantes, configAula) {
   if (btnMetricas) {
     btnMetricas.onclick = () => {
       mostrarModalMetricasAula(datosEstudiantes, moduloActivo, configAula);
+    };
+  }
+
+  // Exportación global de estudiantes con módulos pendientes
+  const btnExportarPendientes = document.getElementById(
+    "btn-exportar-pendientes",
+  );
+  if (btnExportarPendientes) {
+    btnExportarPendientes.onclick = () => {
+      mostrarModalExportacionPendientes(datosEstudiantes, configAula);
+    };
+  }
+
+  // Generación de esquelas de compromiso en Word
+  const btnEsquelaGlobal = document.getElementById("btn-esquela-global");
+  if (btnEsquelaGlobal) {
+    btnEsquelaGlobal.onclick = () => {
+      mostrarModalEsquela(datosEstudiantes, configAula);
     };
   }
 
@@ -210,7 +230,7 @@ function ejecutarRenderizado(datosEstudiantes, configAula) {
     a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }),
   );
 
-  renderizarTabla(filtrados, configAula);
+  renderizarTabla(filtrados, configAula, datosEstudiantes);
 }
 
 function actualizarBadgesMetricas(estudiantesVisibles) {
@@ -241,7 +261,7 @@ function actualizarBadgesMetricas(estudiantesVisibles) {
   setBadge("badge-cnt-retirados", ret);
 }
 
-export function renderizarTabla(datos, configAula) {
+export function renderizarTabla(datos, configAula, datosCompletos = datos) {
   const tbody = document.getElementById("tabla-body");
   const head = document.getElementById("tabla-head");
 
@@ -268,7 +288,8 @@ export function renderizarTabla(datos, configAula) {
   // 2. Fila superior: Estudiante, Credenciales, Encabezado General de ACTIVIDADES y Estado
   let filaUni = `<tr>
     <th rowspan="3" class="align-middle text-start px-3 col-estudiante">Estudiante</th>
-    <th rowspan="3" class="align-middle text-center col-acciones" style="width: 50px;">Credenciales</th>
+    <th rowspan="3" class="align-middle text-center col-acciones" style="width: 60px;">Credenciales</th>
+    <th rowspan="3" class="align-middle text-center col-acciones" style="width: 60px;">Esquela</th>
     <th colspan="${totalCuestionariosModulo}" class="text-center fw-bold col-actividades align-middle" style="letter-spacing: 1px;">ACTIVIDADES</th>
     <th rowspan="3" class="align-middle text-center">Estado</th>
   </tr><tr>`;
@@ -304,6 +325,15 @@ export function renderizarTabla(datos, configAula) {
         <button class="btn btn-xs btn-outline-secondary btn-credenciales" title="Ver Credenciales CAMPUS">
           <i class="bi bi-key-fill"></i>
         </button>
+      </td>
+      <td class="text-center align-middle col-acciones" onclick="event.stopPropagation()">
+        ${
+          esRetirado
+            ? ""
+            : `<button class="btn btn-xs btn-outline-primary btn-esquela" title="Generar Esquela de Compromiso">
+                <i class="bi bi-file-earmark-word-fill"></i>
+              </button>`
+        }
       </td>
     `;
 
@@ -364,6 +394,14 @@ export function renderizarTabla(datos, configAula) {
       btnCred.onclick = (e) => {
         e.stopPropagation();
         mostrarModalCredenciales(est);
+      };
+    }
+
+    const btnEsquela = tr.querySelector(".btn-esquela");
+    if (btnEsquela) {
+      btnEsquela.onclick = (e) => {
+        e.stopPropagation();
+        mostrarModalEsquela(datosCompletos, configAula, est);
       };
     }
 

@@ -16,6 +16,8 @@ Una aplicación web moderna para analizar y visualizar el desempeño académico 
 - **📋 Reportes Flexibles**: Modo reporte que oculta/muestra calificaciones según necesidad
 - **👥 Análisis por Grupos**: Filtrado dinámico por grupo, módulo y estado de completitud
 - **📸 Captura de Pantalla**: Exportar análisis como imágenes (html2canvas)
+- **📥 Exportación Global a Excel**: Registro formateado de estudiantes con módulos pendientes, con Grupo, Carrera en formato TG/TE, filtros automáticos, columnas de firma/seguimiento y hoja de calificaciones detalladas
+- **📝 Esquelas de Compromiso en Word**: Genera esquelas individuales o por grupo con fecha, horario, módulos pendientes y espacios de firma
 - **💬 Integración WhatsApp**: Generador de listas formateadas para compartir en WhatsApp
 
 ---
@@ -41,7 +43,9 @@ anali-tic/
 │   └── ui/                 # Componentes de interfaz de usuario
 │       ├── tableRenderer.js    # Renderizado de tablas y filtros
 │       ├── chartRenderer.js    # Generación de gráficos y visualizaciones
-│       └── modalRenderer.js    # Componentes de modales y diálogos
+│       ├── modalRenderer.js    # Componentes de modales y diálogos
+│       ├── exportRenderer.js   # Exportación global de pendientes a Excel
+│       └── esquelaRenderer.js  # Generación de esquelas de compromiso en Word
 └── README.md               # Este archivo
 ```
 
@@ -95,6 +99,26 @@ anali-tic/
    - Exportar como imagen con captura de pantalla
    - Generar listas para WhatsApp
 
+5. **Exportar Notificación de Módulos Pendientes**:
+   - Hacer clic en **"Exportar pendientes"** en la barra de herramientas
+   - Escoger el centro o subsede: CT Che Guevara (Somoto), Subsede Agropecuaria (Palacagüina) o CT Padre Rafael María Fabretto (Cusmapa)
+   - Descargar el archivo `.xlsx` con título y subtítulo combinados, encabezados filtrables y las columnas de firma/seguimiento en blanco
+   - La exportación es global: incluye a todos los estudiantes del aula cargada que tengan al menos un módulo pendiente o reprobado (excluye retirados)
+   - Los módulos **convalidados** no se consideran pendientes; si el estudiante tiene todos sus módulos convalidados, no aparece en el registro
+   - La hoja incluye las columnas No, Carrera Técnica, **Grupo**, Turno, Nombres y apellidos, Módulos pendientes, Cantidad, Fecha, Firma y Seguimiento
+   - El archivo incluye una segunda hoja **"Calificaciones"** con el detalle de cada cuestionario por módulo, la **Nota Módulo** y el semáforo amarillo/rojo para pendientes y reprobados
+   - El promedio del módulo se calcula sobre todos sus cuestionarios; las actividades pendientes cuentan como 0
+   - **Módulos optativos**: cuando el aula contiene Identidad Cultural y Cultura de Paz, el modal muestra el listado de grupos y permite escoger cuál de los dos cursa cada grupo. El módulo no escogido se ignora en el análisis de pendientes y se muestra en gris con "N/A" en la hoja de calificaciones
+   - **Datos de la base de datos**: la Carrera se exporta como `TG-...` o `TE-...` (diseño, banca y programación) y el Turno en mayúsculas
+   - La hoja de calificaciones usa **Nota Módulo** y muestra las notas sin decimales
+
+6. **Generar Esquela de Compromiso**:
+   - Usar el botón **"Esquela"** de la barra de herramientas para exportar por grupo o por alumno
+   - O usar el botón **"Esquela"** de la fila del estudiante en la tabla para generar solo la de ese alumno
+   - Escoger centro/subsede, fecha de apertura, hora de inicio y hora de cierre
+   - Si el aula tiene módulos optativos, escoger el módulo que cursa el grupo
+   - Descargar el archivo `.docx` con una esquela por estudiante y saltos de página entre cada una
+
 ---
 
 ## ⚙️ Configuración de Aulas
@@ -144,6 +168,8 @@ Las configuraciones de aula se definen en archivos JSON bajo `config/aulas/`. Ca
 - **CSS Framework**: Bootstrap 5.3
 - **Librerías**:
   - **SheetJS (XLSX)**: Lectura de archivos Excel/ODS
+  - **ExcelJS**: Generación de archivos .xlsx con estilos, celdas combinadas y filtros
+  - **docx**: Generación de esquelas en formato Word (.docx), cargada bajo demanda
   - **html2canvas**: Captura de pantalla
   - **Bootstrap Icons**: Iconografía
 
@@ -234,15 +260,33 @@ Las configuraciones de aula se definen en archivos JSON bajo `config/aulas/`. Ca
 - `mostrarModalCredenciales()`: Muestra credenciales de acceso
 - Diálogos interactivos reutilizables
 
+### `js/ui/exportRenderer.js`
+**Responsabilidad**: Exportación global de estudiantes con módulos pendientes
+
+- `obtenerEstudiantesPendientes()`: Calcula los módulos no completados ni convalidados por estudiante, respetando el módulo optativo seleccionado por grupo
+- `exportarPendientesExcel()`: Genera el archivo `.xlsx` con ExcelJS (título y subtítulo combinados, estilos, filtros y configuración de impresión)
+- `agregarHojaDetalleCalificaciones()`: Crea la hoja "Calificaciones" con cuestionarios por módulo, Nota Módulo, semáforo amarillo/rojo y módulos optativos no cursados en gris
+- `mostrarModalExportacionPendientes()`: Permite escoger el centro/subsede y el módulo optativo de cada grupo antes de descargar
+
+### `js/ui/esquelaRenderer.js`
+**Responsabilidad**: Generación de esquelas de compromiso en Word
+
+- `mostrarModalEsquela()`: Permite exportar por grupo o por alumno, escoger centro, fecha y horario, y seleccionar el módulo optativo del grupo
+- `descargarEsquelasWord()`: Genera un `.docx` con una esquela por estudiante, saltos de página, tabla de datos, compromiso y espacios de firma
+- Carga `docx` bajo demanda para no afectar el tiempo de inicio de la aplicación
+
 ---
 
 ## 📊 Formatos de Datos Esperados
 
 ### Archivo de Base de Datos
 Debe contener al menos:
-- Nombres/Identificadores de estudiantes
-- Grupo/Turno
-- Carrera/Programa
+- **Protagonista**: nombres y apellidos del estudiante
+- **Turno**: matutino, vespertino, nocturno, sabatino o dominical
+- **Carrera**: nombre de la carrera (se exporta como `TG-...` o `TE-...`)
+- **Código**: código del grupo, por ejemplo `TG-13786-02-2026`
+- **Grupos**: número interno de TIC (se ignora si existe Código)
+- Correo u otro identificador para cruzar con las calificaciones
 
 ### Archivo de Calificaciones
 Debe contener:

@@ -14,6 +14,7 @@
     />
     <link rel="stylesheet" href="./css/styles.css" />
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
@@ -193,7 +194,7 @@
               </div>
             </div>
 
-            <div class="d-flex gap-2 align-items-center">
+            <div class="d-flex flex-wrap gap-2 align-items-center">
               <input
                 type="text"
                 id="search-input"
@@ -203,6 +204,20 @@
               />
               <button class="btn btn-sm btn-dark" id="btn-modo-reporte">
                 Ocultar calificaciones
+              </button>
+              <button
+                class="btn btn-sm btn-outline-success fw-bold"
+                id="btn-exportar-pendientes"
+                title="Exportar a Excel los estudiantes con módulos pendientes"
+              >
+                <i class="bi bi-file-earmark-excel-fill me-1"></i> Exportar pendientes
+              </button>
+              <button
+                class="btn btn-sm btn-outline-primary fw-bold"
+                id="btn-esquela-global"
+                title="Generar esquelas de compromiso en Word"
+              >
+                <i class="bi bi-file-earmark-word-fill me-1"></i> Esquela
               </button>
               <button
                 class="btn btn-sm btn-success"
@@ -377,6 +392,245 @@
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 4: EXPORTACIÓN DE MÓDULOS PENDIENTES -->
+    <div
+      class="modal fade"
+      id="modalExportarPendientes"
+      tabindex="-1"
+      aria-labelledby="modalExportarPendientesLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+          <div class="modal-header bg-success text-white py-2">
+            <h5 class="modal-title fs-6 fw-bold" id="modalExportarPendientesLabel">
+              <i class="bi bi-file-earmark-excel-fill me-2"></i> Exportar
+              notificación de módulos pendientes
+            </h5>
+            <button
+              type="button"
+              class="btn-close btn-close-white"
+              data-bs-dismiss="modal"
+              aria-label="Cerrar"
+            ></button>
+          </div>
+          <div class="modal-body p-4">
+            <p class="text-muted small mb-3">
+              Se exportarán
+              <strong id="export-pendientes-count" class="text-success">0</strong>
+              estudiantes con al menos un módulo pendiente o reprobado. Los
+              estudiantes retirados no se incluyen.
+            </p>
+
+            <label
+              for="export-centro-selector"
+              class="form-label small fw-bold text-uppercase text-muted"
+            >
+              Centro / Subsede
+            </label>
+            <select id="export-centro-selector" class="form-select">
+              <option value="che-guevara">
+                CENTRO TECNOLÓGICO CHE GUEVARA, SOMOTO
+              </option>
+              <option value="palacaguina">
+                SUBSEDE AGROPECUARIA, PALACAGÜINA
+              </option>
+              <option value="cusmapa">
+                CENTRO TECNOLÓGICO PADRE RAFAEL MARÍA FABRETTO, CUSMAPA
+              </option>
+            </select>
+
+            <div id="export-grupos-opcionales-container" class="mt-3 d-none">
+              <label class="form-label small fw-bold text-uppercase text-muted">
+                Módulo optativo por grupo
+              </label>
+              <p class="text-muted x-small mb-2">
+                Identidad Cultural y Cultura de Paz son optativos: cada grupo
+                cursa uno de los dos. Selecciona el que corresponde a cada
+                grupo para que el análisis de pendientes y la hoja de
+                calificaciones se ajusten correctamente.
+              </p>
+              <div
+                id="export-grupos-opcionales"
+                class="border rounded-3 px-2"
+                style="max-height: 260px; overflow-y: auto"
+              ></div>
+            </div>
+
+            <div class="alert alert-info small mt-3 mb-0">
+              <i class="bi bi-info-circle me-1"></i>
+              El archivo incluirá el título institucional combinado, los
+              encabezados con filtros automáticos y las columnas
+              <strong>Firma</strong> y <strong>Seguimiento</strong> en blanco
+              para llenado manual. También se agregará la hoja
+              <strong>Calificaciones</strong> con el detalle de cuestionarios,
+              promedios por módulo y el semáforo amarillo/rojo.
+            </div>
+          </div>
+          <div class="modal-footer py-2">
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="btn btn-sm btn-success fw-bold"
+              id="btn-confirmar-exportacion"
+            >
+              <i class="bi bi-download me-1"></i> Descargar Excel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 5: ESQUELA DE COMPROMISO -->
+    <div
+      class="modal fade"
+      id="modalEsquela"
+      tabindex="-1"
+      aria-labelledby="modalEsquelaLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+          <div class="modal-header bg-primary text-white py-2">
+            <h5 class="modal-title fs-6 fw-bold" id="modalEsquelaLabel">
+              <i class="bi bi-file-earmark-word-fill me-2"></i> Generar Esquela
+              de Compromiso
+            </h5>
+            <button
+              type="button"
+              class="btn-close btn-close-white"
+              data-bs-dismiss="modal"
+              aria-label="Cerrar"
+            ></button>
+          </div>
+          <div class="modal-body p-4">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label
+                  for="esquela-modo-selector"
+                  class="form-label small fw-bold text-uppercase text-muted"
+                >
+                  Tipo de exportación
+                </label>
+                <select id="esquela-modo-selector" class="form-select">
+                  <option value="grupo">Por grupo</option>
+                  <option value="individual">Por alumno</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label
+                  for="esquela-centro-selector"
+                  class="form-label small fw-bold text-uppercase text-muted"
+                >
+                  Centro / Subsede
+                </label>
+                <select id="esquela-centro-selector" class="form-select">
+                  <option value="che-guevara">
+                    CENTRO TECNOLÓGICO CHE GUEVARA, SOMOTO
+                  </option>
+                  <option value="palacaguina">
+                    SUBSEDE AGROPECUARIA, PALACAGÜINA
+                  </option>
+                  <option value="cusmapa">
+                    CENTRO TECNOLÓGICO PADRE RAFAEL MARÍA FABRETTO, CUSMAPA
+                  </option>
+                </select>
+              </div>
+              <div class="col-md-6" id="esquela-grupo-container">
+                <label
+                  for="esquela-grupo-selector"
+                  class="form-label small fw-bold text-uppercase text-muted"
+                >
+                  Grupo
+                </label>
+                <select id="esquela-grupo-selector" class="form-select"></select>
+              </div>
+              <div class="col-md-6 d-none" id="esquela-estudiante-container">
+                <label
+                  for="esquela-estudiante-selector"
+                  class="form-label small fw-bold text-uppercase text-muted"
+                >
+                  Estudiante
+                </label>
+                <select
+                  id="esquela-estudiante-selector"
+                  class="form-select"
+                ></select>
+              </div>
+              <div class="col-md-6 d-none" id="esquela-optativo-container">
+                <label
+                  for="esquela-optativo-selector"
+                  class="form-label small fw-bold text-uppercase text-muted"
+                >
+                  Módulo optativo del grupo
+                </label>
+                <select
+                  id="esquela-optativo-selector"
+                  class="form-select"
+                ></select>
+              </div>
+              <div class="col-md-4">
+                <label
+                  for="esquela-fecha"
+                  class="form-label small fw-bold text-uppercase text-muted"
+                >
+                  Fecha de apertura
+                </label>
+                <input type="date" id="esquela-fecha" class="form-control" />
+              </div>
+              <div class="col-md-4">
+                <label
+                  for="esquela-hora-inicio"
+                  class="form-label small fw-bold text-uppercase text-muted"
+                >
+                  Hora de inicio
+                </label>
+                <input
+                  type="time"
+                  id="esquela-hora-inicio"
+                  class="form-control"
+                />
+              </div>
+              <div class="col-md-4">
+                <label
+                  for="esquela-hora-fin"
+                  class="form-label small fw-bold text-uppercase text-muted"
+                >
+                  Hora de cierre
+                </label>
+                <input type="time" id="esquela-hora-fin" class="form-control" />
+              </div>
+            </div>
+            <div id="esquela-resumen" class="alert alert-info small mt-3 mb-0">
+              Configure las opciones para generar la esquela.
+            </div>
+          </div>
+          <div class="modal-footer py-2">
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="btn btn-sm btn-primary fw-bold"
+              id="btn-confirmar-esquela"
+            >
+              <i class="bi bi-download me-1"></i> Descargar Word
+            </button>
           </div>
         </div>
       </div>

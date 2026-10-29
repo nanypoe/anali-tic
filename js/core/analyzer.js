@@ -141,7 +141,13 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula, ma
         // Intentar coincidencia exacta con el grupo que viene en la hoja de calificaciones
         if (grupoCal) {
           infoEstudiante = registrosCandidatos.find((cand) => {
-            const gCand = obtenerValorCampo(cand, ["grupo", "grupos", "carrera"]).toLowerCase();
+            const gCand = obtenerValorCampo(cand, [
+              "grupo",
+              "grupos",
+              "carrera",
+              "codigo",
+              "código",
+            ]).toLowerCase();
             return gCand.includes(grupoCal) || grupoCal.includes(gCand);
           });
         }
@@ -149,15 +155,31 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula, ma
         // Si no hubo coincidencia por grupo directo, buscar por coincidencia con el nombre del módulo/curso
         if (!infoEstudiante) {
           infoEstudiante = registrosCandidatos.find((cand) => {
-            const gCand = obtenerValorCampo(cand, ["grupo", "grupos", "carrera"]).toLowerCase();
-            return modulosAulaNombres.some(modNombre => gCand.includes(modNombre) || modNombre.includes(gCand));
+            const gCand = obtenerValorCampo(cand, [
+              "grupo",
+              "grupos",
+              "carrera",
+              "codigo",
+              "código",
+            ]).toLowerCase();
+            return modulosAulaNombres.some(
+              (modNombre) => gCand.includes(modNombre) || modNombre.includes(gCand),
+            );
           });
         }
 
         // Fallback: seleccionar la fila cuya propiedad de grupo coincida con el grupo predominantemente masivo en las notas
         if (!infoEstudiante) {
           infoEstudiante = registrosCandidatos.find((cand) => {
-            const gCand = limpiarTextoGrupo(obtenerValorCampo(cand, ["grupo", "grupos", "carrera"]));
+            const gCand = limpiarTextoGrupo(
+              obtenerValorCampo(cand, [
+                "grupo",
+                "grupos",
+                "carrera",
+                "codigo",
+                "código",
+              ]),
+            );
             return gruposFrecuencia.has(gCand);
           });
         }
@@ -168,27 +190,89 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula, ma
         }
       }
 
-      const nombre =
-        obtenerValorCampo(estCal, ["nombre", "nombres", "first name", "protagonista"]) ||
-        obtenerValorCampo(infoEstudiante, ["nombre", "nombres", "first name"], "Sin nombre");
+      const protagonistaCal = obtenerValorCampo(estCal, ["protagonista"]);
+      const nombreCal = obtenerValorCampo(estCal, [
+        "nombre",
+        "nombres",
+        "first name",
+      ]);
+      const apellidosCal = obtenerValorCampo(estCal, [
+        "apellido(s)",
+        "apellidos",
+        "last name",
+      ]);
+      const protagonistaDb = obtenerValorCampo(infoEstudiante, [
+        "protagonista",
+      ]);
+      const nombreDb = obtenerValorCampo(infoEstudiante, [
+        "nombre",
+        "nombres",
+        "first name",
+      ]);
+      const apellidosDb = obtenerValorCampo(infoEstudiante, [
+        "apellido(s)",
+        "apellidos",
+        "last name",
+      ]);
 
-      const apellidos =
-        obtenerValorCampo(estCal, ["apellido(s)", "apellidos", "last name"]) ||
-        obtenerValorCampo(infoEstudiante, ["apellido(s)", "apellidos", "last name"], "");
+      let nombre;
+      let apellidos;
 
-      const grupoRaw = obtenerValorCampo(infoEstudiante, ["grupo", "grupos", "carrera"]) ||
-                       obtenerValorCampo(estCal, ["grupo", "grupos"]);
-      const carreraRaw = obtenerValorCampo(infoEstudiante, ["carrera", "grupo", "grupos"]);
+      if (protagonistaCal) {
+        nombre = protagonistaCal;
+        apellidos = "";
+      } else if (nombreCal && apellidosCal) {
+        nombre = nombreCal;
+        apellidos = apellidosCal;
+      } else if (protagonistaDb) {
+        nombre = protagonistaDb;
+        apellidos = "";
+      } else {
+        nombre = nombreCal || nombreDb || "Sin nombre";
+        apellidos = apellidosCal || apellidosDb || "";
+      }
 
-      const coincidenciaCodigo = (grupoRaw + " " + carreraRaw).match(/G\d+/i);
+      // Datos académicos de la base de datos. Se priorizan las columnas
+      // Carrera, Turno y Código; la columna interna "Grupos" solo se usa
+      // como respaldo cuando no existe Código.
+      const carreraRaw = obtenerValorCampo(infoEstudiante, [
+        "carrera",
+        "carrera tecnica",
+        "programa",
+        "especialidad",
+      ]);
+      const turnoRaw = obtenerValorCampo(infoEstudiante, ["turno"]);
+      const codigoRaw = obtenerValorCampo(infoEstudiante, [
+        "codigo",
+        "código",
+        "codigo grupo",
+        "codigo de grupo",
+      ]);
+      const codigoValido =
+        codigoRaw && !/^n\/?[da]$/i.test(codigoRaw) ? codigoRaw : "";
+      const grupoInternoRaw = obtenerValorCampo(infoEstudiante, ["grupo", "grupos"]);
+
+      const grupoRaw =
+        codigoValido ||
+        grupoInternoRaw ||
+        obtenerValorCampo(estCal, ["grupo", "grupos"]);
+      const carreraBase = carreraRaw || grupoInternoRaw || grupoRaw;
+
+      const coincidenciaCodigo = (grupoRaw + " " + carreraBase).match(/G\d+/i);
       const codigoMasterClave = coincidenciaCodigo ? coincidenciaCodigo[0].toUpperCase() : null;
 
       let centroVal = "CT Che Guevara";
       let municipioVal = "Somoto";
-      let carreraVal = limpiarTextoGrupo(carreraRaw || grupoRaw || "GENERAL");
-      let grupoVal = limpiarTextoGrupo(grupoRaw || carreraRaw || "GENERAL");
-      let codigoVal = obtenerValorCampo(infoEstudiante, ["codigo", "código"], "N/D");
-      let turnoVal = obtenerValorCampo(infoEstudiante, ["turno"]) || deducirTurno(grupoRaw || carreraRaw);
+      let carreraVal = limpiarTextoGrupo(carreraBase || "GENERAL");
+      let grupoVal = limpiarTextoGrupo(
+        codigoValido || grupoInternoRaw || carreraBase || "GENERAL",
+      );
+      let codigoVal = codigoValido || grupoInternoRaw || "N/D";
+      let turnoVal =
+        turnoRaw ||
+        deducirTurno(
+          [codigoValido, grupoInternoRaw, carreraBase].filter(Boolean).join(" "),
+        );
       let etiquetaGrupo = "Sin Grupo Asignado";
 
       if (codigoMasterClave && mapaGruposMaster && mapaGruposMaster[codigoMasterClave]) {
@@ -201,7 +285,17 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula, ma
         grupoVal = codigoMasterClave;
         etiquetaGrupo = `${codigoMasterClave} - ${carreraVal} (${centroVal} - ${municipioVal})`;
       } else if (infoEstudiante || grupoRaw) {
-        if (grupoVal !== "GENERAL" && carreraVal !== "GENERAL" && grupoVal !== carreraVal) {
+        if (
+          codigoValido &&
+          carreraVal !== "GENERAL" &&
+          carreraVal !== codigoValido
+        ) {
+          etiquetaGrupo = `${codigoValido} - ${carreraVal.toUpperCase()}`;
+        } else if (
+          grupoVal !== "GENERAL" &&
+          carreraVal !== "GENERAL" &&
+          grupoVal !== carreraVal
+        ) {
           etiquetaGrupo = `${grupoVal} - ${carreraVal.toUpperCase()}`;
         } else {
           etiquetaGrupo = grupoVal !== "GENERAL" ? grupoVal : carreraVal;
