@@ -136,9 +136,13 @@ export function configurarImpresion(ws, filaEncabezado) {
   ws.pageSetup = { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
 }
 
-export async function descargarLibro(libro, nombre) {
+export async function libroABlob(libro) {
   const buffer = await libro.xlsx.writeBuffer();
-  const blob = new Blob([buffer], { type: MIME_XLSX });
+  return new Blob([buffer], { type: MIME_XLSX });
+}
+
+export async function descargarLibro(libro, nombre) {
+  const blob = await libroABlob(libro);
   const url = URL.createObjectURL(blob);
   const enlace = document.createElement("a");
   enlace.href = url;

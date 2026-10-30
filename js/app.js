@@ -9,6 +9,8 @@ import { inicializarPreferencias, mostrarIntroPrimeraVez } from './ui/intro.js';
 import { activarArrastreArchivos, actualizarProgreso } from './ui/dropzone.js';
 import { toast } from './ui/feedback.js';
 import { inicializarNotificaciones } from './ui/notificationRenderer.js';
+import { inicializarTema } from './ui/tema.js';
+import { inicializarAtajos } from './ui/atajos.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   const dbFileInput = document.getElementById('db-file-input');
@@ -24,6 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const analysisProgressBar = document.getElementById('analysis-progress-bar');
 
   inicializarPreferencias();
+  inicializarTema();
+  inicializarAtajos();
   mostrarIntroPrimeraVez();
 
   document.getElementById('btn-plantilla-tic')?.addEventListener('click', descargarPlantillaTic);

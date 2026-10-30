@@ -5,10 +5,22 @@
  * al seleccionar una píldora.
  */
 
-const DURACION = { info: 3200, exito: 3200, aviso: 4200, error: 5200 };
+const DURACION = { info: 2200, exito: 2200, aviso: 3000, error: 4000 };
+const DURACION_CON_ACCION = 7000;
 const ICONOS = { info: "bi-info-circle-fill", exito: "bi-check-circle-fill", aviso: "bi-exclamation-triangle-fill", error: "bi-x-octagon-fill" };
 
-export function toast(mensaje, tipo = "info") {
+function retirarToast(el) {
+  el.classList.remove("visible");
+  el.addEventListener("transitionend", () => el.remove(), { once: true });
+  setTimeout(() => el.remove(), 600);
+}
+
+/**
+ * @param {string} mensaje
+ * @param {string} [tipo] info | exito | aviso | error
+ * @param {{ etiqueta: string, onClick: () => void }} [accion] Botón opcional (por ejemplo "Deshacer").
+ */
+export function toast(mensaje, tipo = "info", accion = null) {
   const contenedor = document.getElementById("toast-contenedor");
   if (!contenedor) return;
   const el = document.createElement("div");
@@ -16,15 +28,23 @@ export function toast(mensaje, tipo = "info") {
   el.setAttribute("role", "status");
   el.innerHTML = `<i class="bi ${ICONOS[tipo] || ICONOS.info}"></i><span></span>`;
   el.querySelector("span").textContent = mensaje;
+  if (accion) {
+    const boton = document.createElement("button");
+    boton.type = "button";
+    boton.className = "toast-accion";
+    boton.textContent = accion.etiqueta;
+    boton.onclick = () => {
+      retirarToast(el);
+      accion.onClick();
+    };
+    el.appendChild(boton);
+  }
   // Como máximo tres avisos a la vez: el más antiguo se retira
   while (contenedor.children.length >= 3) contenedor.firstElementChild.remove();
   contenedor.appendChild(el);
   requestAnimationFrame(() => el.classList.add("visible"));
-  setTimeout(() => {
-    el.classList.remove("visible");
-    el.addEventListener("transitionend", () => el.remove(), { once: true });
-    setTimeout(() => el.remove(), 600);
-  }, DURACION[tipo] || DURACION.info);
+  const duracion = accion ? DURACION_CON_ACCION : DURACION[tipo] || DURACION.info;
+  setTimeout(() => retirarToast(el), duracion);
 }
 
 /** Pulso de confirmación sobre una píldora o botón. */

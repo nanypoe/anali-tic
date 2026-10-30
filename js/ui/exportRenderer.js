@@ -79,6 +79,10 @@ const COLUMNAS = [
 const TOTAL_COLUMNAS = COLUMNAS.length;
 const FILA_ENCABEZADO = 4;
 const FILA_PRIMER_DATO = 5;
+const TAMANO_TITULO = 28;
+const COLUMNA_GRUPO = 3;
+const FIJAS_CALIFICACIONES = 4;
+const LINEA_MODULO = { style: "medium", color: { argb: "FF5B3DF5" } };
 
 function normalizarTexto(texto) {
   return String(texto || "")
@@ -447,16 +451,16 @@ function calcularAlturaTitulo(texto) {
   const anchoDisponible =
     COLUMNAS.reduce((total, columna) => total + columna.width, 0) * 7 + 5;
 
-  // Estimación aproximada para Arial 48 en mayúsculas, usada solo si el
+  // Estimación aproximada para Arial 28 en mayúsculas, usada solo si el
   // navegador no permite medir el texto con canvas.
-  let anchoTexto = String(texto).length * 42;
+  let anchoTexto = String(texto).length * 24;
 
   try {
     if (typeof document !== "undefined" && document.createElement) {
       const canvas = document.createElement("canvas");
       const contexto = canvas.getContext && canvas.getContext("2d");
       if (contexto) {
-        contexto.font = "bold 48pt Arial";
+        contexto.font = `bold ${TAMANO_TITULO}pt Arial`;
         anchoTexto = contexto.measureText(String(texto)).width;
       }
     }
@@ -465,7 +469,7 @@ function calcularAlturaTitulo(texto) {
   }
 
   const lineas = Math.max(1, Math.ceil(anchoTexto / anchoDisponible));
-  return lineas === 1 ? 70 : 70 + (lineas - 1) * 58;
+  return lineas === 1 ? 44 : 44 + (lineas - 1) * 34;
 }
 
 function aplicarRellenoCombinado(worksheet, fila, valor, opciones) {
@@ -591,14 +595,14 @@ function agregarHojaDetalleCalificaciones(
   );
 
   const totalColumnas =
-    3 +
+    FIJAS_CALIFICACIONES +
     estructuraModulos.reduce(
       (total, modulo) => total + modulo.cuestionarios.length + 1,
       0,
     );
 
   const worksheet = workbook.addWorksheet("Calificaciones", {
-    views: [{ state: "frozen", xSplit: 3, ySplit: 2 }],
+    views: [{ state: "frozen", xSplit: 4, ySplit: 2 }],
     properties: { defaultRowHeight: 18 },
     pageSetup: {
       orientation: "landscape",
@@ -608,7 +612,7 @@ function agregarHojaDetalleCalificaciones(
       fitToHeight: 0,
       horizontalCentered: true,
       printTitlesRow: "1:2",
-      printTitlesColumn: "A:C",
+      printTitlesColumn: "A:D",
       margins: {
         left: 0.3,
         right: 0.3,
@@ -622,9 +626,10 @@ function agregarHojaDetalleCalificaciones(
 
   worksheet.getColumn(1).width = 34;
   worksheet.getColumn(2).width = 32;
-  worksheet.getColumn(3).width = 14;
+  worksheet.getColumn(COLUMNA_GRUPO).width = 14;
+  worksheet.getColumn(4).width = 14;
 
-  let columna = 4;
+  let columna = FIJAS_CALIFICACIONES + 1;
   estructuraModulos.forEach((modulo) => {
     modulo.cuestionarios.forEach(() => {
       worksheet.getColumn(columna).width = 8;
@@ -640,36 +645,23 @@ function agregarHojaDetalleCalificaciones(
     bold: true,
     color: { argb: COLORES.blanco },
   };
-  const fuenteSubencabezado = {
-    name: "Arial",
-    size: 9,
-    bold: true,
-    color: { argb: COLORES.azulCorporativo },
-  };
-
-  // Columnas fijas: Nombres y apellidos, Carrera y Turno.
-  ["Nombres y apellidos", "Carrera", "Turno"].forEach((titulo, indice) => {
+  // Columnas fijas: Nombres y apellidos, Carrera, Grupo y Turno. Van en la fila 2 (sin combinar)
+  // para que el filtro automático de Grupo quede en el encabezado.
+  ["Nombres y apellidos", "Carrera", "Grupo", "Turno"].forEach((titulo, indice) => {
     const numeroColumna = indice + 1;
-    worksheet.mergeCells(1, numeroColumna, 2, numeroColumna);
-
-    [1, 2].forEach((numeroFila) => {
-      const celda = worksheet.getCell(numeroFila, numeroColumna);
-      aplicarEstiloEncabezado(
-        celda,
-        fuenteEncabezado,
-        COLORES.azulCorporativo,
-      );
-    });
-
-    worksheet.getCell(1, numeroColumna).value = titulo;
+    aplicarEstiloEncabezado(worksheet.getCell(1, numeroColumna), fuenteEncabezado, COLORES.azulCorporativo);
+    aplicarEstiloEncabezado(worksheet.getCell(2, numeroColumna), fuenteEncabezado, COLORES.azulCorporativo);
+    worksheet.getCell(2, numeroColumna).value = titulo;
   });
 
-  // Encabezados de módulos y cuestionarios.
-  columna = 4;
+  // Encabezados de módulos y cuestionarios, todos en azul corporativo.
+  columna = FIJAS_CALIFICACIONES + 1;
+  const rangosModulos = [];
   estructuraModulos.forEach((modulo) => {
     const columnaInicio = columna;
     const columnaPromedio = columnaInicio + modulo.cuestionarios.length;
     const columnaFin = columnaPromedio;
+    rangosModulos.push({ inicio: columnaInicio, fin: columnaFin });
 
     if (columnaFin > columnaInicio) {
       worksheet.mergeCells(1, columnaInicio, 1, columnaFin);
@@ -689,8 +681,8 @@ function agregarHojaDetalleCalificaciones(
       celda.value = cuestionario.etiqueta;
       aplicarEstiloEncabezado(
         celda,
-        fuenteSubencabezado,
-        COLORES.azulClaro,
+        fuenteEncabezado,
+        COLORES.azulCorporativo,
       );
       celda.note = `${cuestionario.unidad}: ${cuestionario.clave}`;
     });
@@ -699,13 +691,9 @@ function agregarHojaDetalleCalificaciones(
     celdaPromedio.value = "Nota Módulo";
     aplicarEstiloEncabezado(
       celdaPromedio,
-      fuenteSubencabezado,
-      COLORES.azulClaro,
+      fuenteEncabezado,
+      COLORES.azulCorporativo,
     );
-    celdaPromedio.border = {
-      ...celdaPromedio.border,
-      left: { style: "medium", color: { argb: COLORES.azulCorporativo } },
-    };
     celdaPromedio.note =
       "Nota del módulo: promedio de sus cuestionarios. Las actividades pendientes cuentan como 0.";
 
@@ -723,8 +711,13 @@ function agregarHojaDetalleCalificaciones(
       configAula,
       moduloOptativoPorGrupo,
     );
-    const valoresFijos = [registro.nombre, registro.carrera, registro.turno];
-    const alineacionesFijas = ["left", "left", "center"];
+    const valoresFijos = [
+      registro.nombre,
+      registro.carrera,
+      String(registro.claveGrupo || "").toUpperCase(),
+      registro.turno,
+    ];
+    const alineacionesFijas = ["left", "left", "center", "center"];
 
     valoresFijos.forEach((valor, indiceColumna) => {
       const celda = fila.getCell(indiceColumna + 1);
@@ -743,7 +736,7 @@ function agregarHojaDetalleCalificaciones(
       celda.border = crearBordeDatos();
     });
 
-    let columnaActual = 4;
+    let columnaActual = FIJAS_CALIFICACIONES + 1;
 
     estructuraModulos.forEach((modulo) => {
       const esOptativo = optativos.includes(modulo.nombreModulo);
@@ -825,10 +818,7 @@ function agregarHojaDetalleCalificaciones(
       const celdaPromedio = fila.getCell(columnaActual);
       celdaPromedio.numFmt = "0";
       celdaPromedio.alignment = { horizontal: "center", vertical: "middle" };
-      celdaPromedio.border = {
-        ...crearBordeDatos(),
-        left: { style: "medium", color: { argb: COLORES.azulCorporativo } },
-      };
+      celdaPromedio.border = crearBordeDatos();
 
       if (noSeleccionado) {
         celdaPromedio.value = "N/A";
@@ -889,9 +879,25 @@ function agregarHojaDetalleCalificaciones(
     fila.height = Math.max(22, lineas * 13 + 6);
   });
 
+  // Límites entre módulos: línea gruesa en el borde izquierdo y derecho de cada módulo, de arriba abajo
+  rangosModulos.forEach(({ inicio, fin }) => {
+    for (let fila = 1; fila <= 2 + pendientes.length; fila++) {
+      const celdaInicio = worksheet.getCell(fila, inicio);
+      celdaInicio.border = { ...celdaInicio.border, left: LINEA_MODULO };
+      const celdaFin = worksheet.getCell(fila, fin);
+      celdaFin.border = { ...celdaFin.border, right: LINEA_MODULO };
+    }
+  });
+
   const ultimaFila = 2 + pendientes.length;
   const ultimaColumna = worksheet.getColumn(totalColumnas).letter;
   worksheet.pageSetup.printArea = `A1:${ultimaColumna}${ultimaFila}`;
+
+  // Filtro automático por defecto en la columna Grupo
+  worksheet.autoFilter = {
+    from: { row: 2, column: COLUMNA_GRUPO },
+    to: { row: ultimaFila, column: COLUMNA_GRUPO },
+  };
 
   return worksheet;
 }
@@ -962,7 +968,7 @@ export async function exportarPendientesExcel(
     altura: calcularAlturaTitulo(centro),
     fuente: {
       name: "Arial",
-      size: 48,
+      size: TAMANO_TITULO,
       bold: true,
       color: { argb: COLORES.blanco },
     },
@@ -975,10 +981,10 @@ export async function exportarPendientesExcel(
     "REGISTRO DE NOTIFICACIÓN DE MÓDULOS TRANSVERSALES PENDIENTES",
     {
       relleno: COLORES.azulCorporativo,
-      altura: 32,
+      altura: 24,
       fuente: {
         name: "Arial",
-        size: 18,
+        size: 13,
         bold: true,
         color: { argb: COLORES.blanco },
       },
@@ -1081,10 +1087,10 @@ export async function exportarPendientesExcel(
 
   const ultimaFila = FILA_PRIMER_DATO + pendientes.length - 1;
 
-  // Filtros automáticos en el encabezado
+  // Filtro automático por defecto en la columna Grupo
   worksheet.autoFilter = {
-    from: { row: FILA_ENCABEZADO, column: 1 },
-    to: { row: ultimaFila, column: TOTAL_COLUMNAS },
+    from: { row: FILA_ENCABEZADO, column: COLUMNA_GRUPO },
+    to: { row: ultimaFila, column: COLUMNA_GRUPO },
   };
 
   // Área de impresión

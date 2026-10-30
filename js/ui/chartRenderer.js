@@ -1,6 +1,8 @@
 /* js/ui/chartRenderer.js */
 
 import { getTipoBase } from "../core/store.js";
+import { COLOR_TEXTO_GRAFICO } from "./tema.js";
+import { animacionesReducidas } from "../core/preferencias.js";
 import { estadoCierre, formatearFechaHora } from "../core/fechas.js";
 import {
   formatearEtiquetaGrupo,
@@ -127,6 +129,10 @@ function renderizarKpis(m, moduloNombre, configAula) {
 }
 
 function animarNumero(el, destino, duracion = 700) {
+  if (animacionesReducidas()) {
+    el.textContent = destino;
+    return;
+  }
   const inicio = performance.now();
   const paso = (ahora) => {
     const t = Math.min(1, (ahora - inicio) / duracion);
@@ -162,7 +168,7 @@ export function renderizarGraficoDona(datosEstudiantes = [], moduloNombre = "") 
       responsive: true,
       maintainAspectRatio: false,
       cutout: "62%",
-      animation: { animateRotate: true, duration: 900 },
+      animation: animacionesReducidas() ? false : { animateRotate: true, duration: 900 },
       plugins: {
         legend: {
           position: "bottom",
@@ -227,7 +233,17 @@ function descargarGraficoComoImagen(moduloNombre, total) {
   ctx.font = "13px system-ui, sans-serif";
   ctx.fillText(`Total evaluados: ${total} estudiantes (retirados fuera del porcentaje)`, 24, 128);
 
+  // La leyenda se dibuja con el color del tema claro para que se lea sobre el fondo blanco del PNG
+  const colorLeyenda = miChart?.options.plugins.legend.labels.color;
+  if (miChart) {
+    miChart.options.plugins.legend.labels.color = COLOR_TEXTO_GRAFICO.claro;
+    miChart.update("none");
+  }
   ctx.drawImage(canvas, 40, 140);
+  if (miChart) {
+    miChart.options.plugins.legend.labels.color = colorLeyenda;
+    miChart.update("none");
+  }
 
   const enlace = document.createElement("a");
   enlace.download = `Distribucion_${moduloNombre.replace(/[^\wÁÉÍÓÚÑáéíóúñ-]+/g, "_")}_${fechaArchivo()}.png`;

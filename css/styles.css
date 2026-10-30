@@ -71,7 +71,7 @@ html, body {
 
 .border-dashed {
   border: 2px dashed var(--at-primario) !important;
-  transition: all 0.25s ease-in-out;
+  transition: border-color 0.25s ease-in-out, background-color 0.25s ease-in-out;
 }
 
 .border-dashed:hover {
@@ -102,7 +102,7 @@ html, body {
   font-weight: 600;
   padding: 0.4rem 0.9rem;
   border-radius: 0.5rem;
-  transition: all 0.2s ease-in-out;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -215,6 +215,14 @@ html, body {
   text-transform: uppercase;
   font-size: 0.72rem;
   border: 1px solid #9ec5fe !important;
+}
+
+/* Celdas de actividades: el color de fondo llega en línea (estado), aquí solo tipografía y borde.
+   El texto va siempre oscuro para leerse en ambos modos */
+#tabla-resultados td.celda-actividad {
+  font-size: 0.72rem;
+  border: 1px solid #dee2e6;
+  color: #1E1B3A;
 }
 
 
@@ -331,7 +339,7 @@ select:focus-visible {
 .footer-anali .btn-outline-primary {
   border-color: var(--at-primario);
   color: var(--at-primario);
-  transition: all 0.2s ease-in-out;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
 
 .footer-anali .btn-outline-primary:hover {
@@ -361,7 +369,7 @@ select:focus-visible {
   border-radius: 6px;
   padding: 6px 16px;
   font-size: 0.875rem;
-  transition: all 0.2s ease-in-out;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
 
 #modalMetricasAula .nav-pills .nav-link.active {
@@ -493,14 +501,6 @@ select:focus-visible {
   to { opacity: 1; transform: none; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .loader-barras span,
-  #status-area,
-  .upload-card {
-    animation: none !important;
-    transition: none !important;
-  }
-}
 
 
 /* ============================================================================
@@ -626,7 +626,7 @@ body {
   border-radius: 999px;
   padding: 0.4rem 1rem;
   font-size: 0.9rem;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 .nav-pills-marca .nav-link.active {
   background: var(--at-primario);
@@ -714,6 +714,7 @@ body {
   height: 100%;
   border-radius: 999px;
   transition: width 1s cubic-bezier(.2,.8,.2,1);
+  transform-origin: left center;
   animation: barra-crece 1s ease both;
 }
 .barra-pct span {
@@ -721,10 +722,12 @@ body {
   display: flex; align-items: center; justify-content: center;
   font-size: 0.75rem; font-weight: 800; color: var(--at-tinta);
 }
-@keyframes barra-crece { from { width: 0; } }
+/* Se anima con transform (no con width) para no recalcular el diseño en cada fotograma */
+@keyframes barra-crece { from { transform: scaleX(0); } }
 
 /* Barra de avance de la boleta: crece al abrirse (CSS, así no depende del orden de render) */
 .progress-bar-marca {
+  transform-origin: left center;
   animation: barra-crece 0.9s cubic-bezier(.2,.8,.2,1) both;
 }
 
@@ -775,7 +778,6 @@ body {
   background: var(--at-ambar);
   color: var(--at-tinta);
   font-size: 1.2rem;
-  animation: latido 1.8s ease-in-out infinite;
 }
 @keyframes latido {
   0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 183, 3, 0.6); }
@@ -783,7 +785,8 @@ body {
 }
 
 /* Tabla principal: entrada escalonada de filas y hover */
-#tabla-body.animar-filas tr.row-estudiante {
+/* Solo las primeras filas entran animadas: con cientos de estudiantes, animar todas cuesta mucho en equipos modestos */
+#tabla-body.animar-filas tr.row-estudiante:nth-child(-n + 20) {
   animation: fila-entrada 0.35s ease both;
   transition: background-color 0.15s ease;
 }
@@ -801,7 +804,7 @@ body {
   padding: 2.5rem 1rem;
   color: var(--at-gris);
 }
-.vacio-ilustrado img { width: 150px; margin-bottom: 0.5rem; animation: flotar 3s ease-in-out infinite; }
+.vacio-ilustrado img { width: 150px; margin-bottom: 0.5rem; }
 @keyframes flotar {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-6px); }
@@ -817,7 +820,6 @@ body {
   width: 120px;
   display: block;
   margin: 0 auto 0.5rem;
-  animation: flotar 3.5s ease-in-out infinite;
 }
 
 /* Botones de plantilla con icono animado */
@@ -865,7 +867,7 @@ body {
 .menu-notificaciones-vacio { width: min(320px, 85vw); }
 .menu-notificaciones-vacio img { width: 96px; }
 
-#ui-preferences { max-width: 390px; }
+#ui-preferences { max-width: 520px; }
 #ui-preferences .form-check { white-space: nowrap; }
 
 .export-grupo-fila {
@@ -901,24 +903,10 @@ body {
   scroll-behavior: auto !important;
   transition: none !important;
 }
+.reducir-animaciones .kpi-card:hover,
+.reducir-animaciones .btn-accion:hover,
+.reducir-animaciones .btn-captura:hover { transform: none; }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation: none !important;
-    scroll-behavior: auto !important;
-    transition: none !important;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .kpi-card, #tabla-body tr.row-estudiante, .reloj-cierre,
-  .vacio-ilustrado img, .ilustracion-carga, .barra-pct-fill {
-    animation: none !important;
-  }
-  .kpi-card:hover, .btn-accion:hover, .btn-captura:hover { transform: none; }
-}
 
 /* Paso 2 de carga: turquesa de la marca */
 .paso-turquesa-borde { border-color: #99F0E4 !important; }
@@ -1009,6 +997,7 @@ body {
   pointer-events: none;
 }
 .toast-anali {
+  pointer-events: none;
   display: flex;
   align-items: center;
   gap: 0.6rem;
@@ -1034,6 +1023,24 @@ body {
 .toast-aviso i { color: var(--at-ambar); }
 .toast-error { background: #7A1F14; }
 .toast-error i { color: #FCA5A5; }
+.toast-accion {
+  pointer-events: auto;
+  margin-left: auto;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 0.2rem 0.8rem;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.toast-accion:hover,
+.toast-accion:focus-visible {
+  background: #ffffff;
+  color: var(--at-tinta);
+}
 
 /* ============================================================================
    SECCIÓN 13: ICONOGRAFÍA Y MICRO-ANIMACIONES
@@ -1103,12 +1110,6 @@ body {
 .modal.fade .modal-dialog { transition: transform 0.35s cubic-bezier(.34,1.3,.64,1), opacity 0.25s ease; }
 .modal.fade:not(.show) .modal-dialog { transform: translateY(18px) scale(0.97); }
 
-@media (prefers-reduced-motion: reduce) {
-  .badge.badge-pop, .upload-card.archivo-listo .archivo-nombre::before,
-  .btn-accion:hover i, .btn-captura:hover i, .btn-pill .pill-icono,
-  .modal.fade .modal-dialog { animation: none !important; transition: none !important; }
-  .toast-anali { transition: none !important; }
-}
 
 /* ============================================================================
    SECCIÓN 14: DASHBOARD COMPACTO - la tabla es el centro de la pantalla
@@ -1247,7 +1248,7 @@ body {
 .paso-progreso.completo .paso-circulo::before { content: "\F26A"; font-family: "bootstrap-icons"; }
 .paso-progreso.completo .paso-circulo { font-size: 0; }
 .paso-progreso.completo .paso-circulo::before { font-size: 0.9rem; }
-.paso-progreso.activo .paso-circulo { background: var(--at-ambar); color: var(--at-tinta); animation: latido 1s ease-in-out infinite; }
+.paso-progreso.activo .paso-circulo { background: var(--at-ambar); color: var(--at-tinta); }
 .paso-linea { width: 48px; height: 3px; border-radius: 3px; background: #E7E4F7; overflow: hidden; position: relative; }
 .paso-linea.completo { background: var(--at-verde); }
 
@@ -1261,10 +1262,6 @@ body {
 .upload-card .icon-shape i { transition: transform 0.3s ease; }
 .upload-card.arrastrando .icon-shape i { animation: flotar 1s ease-in-out infinite; }
 
-@media (prefers-reduced-motion: reduce) {
-  .intro-logo, .intro-titulo, .intro-tagline, .intro-frase, .intro-barra span,
-  .paso-progreso.activo .paso-circulo, .upload-card.arrastrando .icon-shape i { animation: none !important; }
-}
 
 /* Selector de archivo nativo con el estilo de marca */
 #upload-container input[type="file"] {
@@ -1287,3 +1284,103 @@ body {
 #upload-container input[type="file"]:hover::file-selector-button { background: var(--at-primario-oscuro); }
 #upload-container input[type="file"]:active::file-selector-button { transform: scale(0.97); }
 #upload-container .upload-card.archivo-listo input[type="file"] { color: #065F46; }
+
+/* ============================================================================
+   SECCIÓN 17: MODO OSCURO con la paleta de marca
+   Se activa con data-bs-theme="dark" en <html>. Las variables de marca cambian
+   y todo lo que ya las usa se adapta. Las áreas que se exportan como imagen o
+   documento (boleta y captura) conservan fondo claro.
+   ============================================================================ */
+[data-bs-theme="dark"] {
+  --at-fondo: #13112A;
+  --at-tinta: #ECEAFB;
+  --at-gris: #A9A4C9;
+  --at-primario-claro: #2B2566;
+  --at-superficie: #1C1941;
+  --at-superficie-2: #252052;
+  --at-linea: #3A3470;
+  --bs-body-bg: #13112A;
+  --bs-body-color: #ECEAFB;
+  --bs-border-color: #3A3470;
+}
+
+[data-bs-theme="dark"] body { background-color: var(--at-fondo) !important; }
+[data-bs-theme="dark"] .bg-light,
+[data-bs-theme="dark"] .bg-white { background-color: var(--at-superficie) !important; color: var(--at-tinta); }
+[data-bs-theme="dark"] .card,
+[data-bs-theme="dark"] .modal-content,
+[data-bs-theme="dark"] .dropdown-menu { background-color: var(--at-superficie); color: var(--at-tinta); }
+[data-bs-theme="dark"] h4.text-dark,
+[data-bs-theme="dark"] h6.text-dark,
+[data-bs-theme="dark"] .badge.bg-light { color: var(--at-tinta) !important; }
+[data-bs-theme="dark"] .text-primary { color: #A997FF !important; }
+[data-bs-theme="dark"] .text-muted { color: var(--at-gris) !important; }
+
+[data-bs-theme="dark"] .footer-anali {
+  background-color: var(--at-superficie) !important;
+  border-top-color: var(--at-primario) !important;
+}
+[data-bs-theme="dark"] .footer-anali span,
+[data-bs-theme="dark"] .footer-anali p { color: var(--at-gris); }
+[data-bs-theme="dark"] .footer-anali strong,
+[data-bs-theme="dark"] .footer-anali .text-dark { color: var(--at-tinta) !important; }
+
+[data-bs-theme="dark"] .nav-pills-modern { background-color: var(--at-superficie-2); }
+[data-bs-theme="dark"] .btn-pill { color: #B9B4DD; }
+[data-bs-theme="dark"] .btn-pill:hover { background-color: rgba(255, 255, 255, 0.08); color: #ffffff; }
+[data-bs-theme="dark"] .btn-pill-modulo:not(.active):hover { background-color: rgba(255, 255, 255, 0.08); color: var(--pill-color); }
+[data-bs-theme="dark"] .btn-pill[data-estado="PENDIENTE"].active,
+[data-bs-theme="dark"] .btn-pill[data-estado="PENDIENTE"].active .pill-icono { color: #1E1B3A; }
+[data-bs-theme="dark"] .btn-accion {
+  background: var(--at-superficie-2);
+  border-color: var(--at-linea);
+  color: #D9D2FF;
+}
+[data-bs-theme="dark"] .btn-accion:hover { background: #2E2A6E; color: #ffffff; }
+[data-bs-theme="dark"] #btn-modo-reporte.btn-dark { background-color: #2E2A5C; border-color: var(--at-linea); }
+[data-bs-theme="dark"] .kpi-card { background: var(--at-superficie); border-color: var(--at-linea); }
+[data-bs-theme="dark"] .kpi-valor { color: var(--at-tinta); }
+[data-bs-theme="dark"] .kpi-cierre { background: var(--at-primario-claro); border-color: #4A3F9A; }
+[data-bs-theme="dark"] .kpi-cierre.kpi-vencido { background: #3A1D22; border-color: #7A2E33; }
+[data-bs-theme="dark"] .kpi-cierre .kpi-sub { color: var(--at-tinta); }
+[data-bs-theme="dark"] .guia-item { border-bottom-color: var(--at-linea); }
+[data-bs-theme="dark"] .aviso-abierto { background: rgba(255, 183, 3, 0.12); border-color: #7A5A12; color: #FFE08A; }
+[data-bs-theme="dark"] .aviso-vencido { background: rgba(255, 107, 91, 0.14); border-color: #7A2E33; color: #FFC9C0; }
+[data-bs-theme="dark"] .tabla-grupos thead th { color: #DCD6FF; }
+[data-bs-theme="dark"] .tabla-grupos tfoot td { background: rgba(255, 183, 3, 0.14); color: var(--at-tinta); }
+[data-bs-theme="dark"] .leyenda-estados { color: #B9B4DD; }
+[data-bs-theme="dark"] .progress,
+[data-bs-theme="dark"] .progress-marca,
+[data-bs-theme="dark"] .barra-pct,
+[data-bs-theme="dark"] .paso-circulo,
+[data-bs-theme="dark"] .paso-linea { background-color: #2E2A5C; }
+[data-bs-theme="dark"] .paso-circulo { color: #DCD6FF; }
+[data-bs-theme="dark"] .skeleton-fila {
+  background: linear-gradient(90deg, #2A2566 25%, #353075 50%, #2A2566 75%);
+  background-size: 200% 100%;
+}
+
+[data-bs-theme="dark"] .table-light { --bs-table-bg: var(--at-superficie-2); --bs-table-color: var(--at-tinta); color: var(--at-tinta); }
+[data-bs-theme="dark"] #tabla-resultados thead th { background: var(--at-primario-claro); color: #DCD6FF; }
+[data-bs-theme="dark"] .row-estudiante:hover,
+[data-bs-theme="dark"] #tabla-body tr.row-estudiante:hover { background-color: #2A2566 !important; }
+[data-bs-theme="dark"] .border-dashed:hover { background-color: var(--at-superficie-2) !important; }
+[data-bs-theme="dark"] .upload-card.archivo-listo { background: linear-gradient(180deg, var(--at-superficie), #123A33) !important; }
+[data-bs-theme="dark"] .upload-card.archivo-listo .archivo-nombre { color: #6EE7B7; }
+[data-bs-theme="dark"] #upload-container input[type="file"] { color: var(--at-gris); }
+[data-bs-theme="dark"] .vacio-ilustrado { color: var(--at-gris); }
+[data-bs-theme="dark"] #tabla-resultados td.cell-convalidado { background-color: #1E3A6B !important; color: #BFDBFE !important; border-color: #2F5599 !important; }
+[data-bs-theme="dark"] .toast-anali { background: #0B0A1C; border: 1px solid var(--at-linea); }
+
+/* Áreas que se exportan como documento o imagen: se muestran con fondo y tinta claros */
+[data-bs-theme="dark"] #area-captura-boleta,
+[data-bs-theme="dark"] #area-captura {
+  --at-tinta: #1E1B3A;
+  --at-gris: #6B7280;
+  --at-superficie: #FFFFFF;
+  --at-superficie-2: #F3F4F6;
+  --at-primario-claro: #EEEAFE;
+  --bs-body-color: #212529;
+  color: #1E1B3A;
+}
+[data-bs-theme="dark"] #area-captura-boleta { background-color: #ffffff !important; }

@@ -14,6 +14,8 @@ import { estadoCierre } from "../core/fechas.js";
 import { getTipoBase } from "../core/store.js";
 import { formatearEtiquetaGrupo } from "../core/groupFormat.js";
 import { pulsar, toast } from "./feedback.js";
+import { colorModulo } from "./paletaModulos.js";
+import { conTemaClaro } from "./tema.js";
 
 const tipoBaseTic = () => getTipoBase() === "tic";
 
@@ -115,8 +117,6 @@ export function refrescarTabla(nuevosDatos) {
 }
 
 /** Paleta por módulo: cada módulo tiene su color al activarse. */
-const COLORES_MODULO = ["#5B3DF5", "#0EA5E9", "#14B8A6", "#F97316", "#EC4899", "#84CC16", "#A855F7", "#EF4444"];
-
 /** Icono según el nombre del módulo (palabras clave). */
 function iconoModulo(nombre) {
   const n = nombre.toLowerCase();
@@ -140,7 +140,7 @@ function renderizarPildorasModulos() {
     .map(
       (mod, idx) => `
     <button class="btn-pill btn-pill-modulo ${mod === moduloActivo ? "active" : ""}" data-modulo="${mod}"
-            style="--pill-color:${COLORES_MODULO[idx % COLORES_MODULO.length]}" title="${mod}">
+            style="--pill-color:#${colorModulo(idx)}" title="${mod}">
       <i class="bi ${iconoModulo(mod)} pill-icono"></i><span class="pill-texto">${mod}</span>
     </button>
   `,
@@ -444,7 +444,7 @@ export function renderizarTabla(datos, configAula, datosCompletos = datos, anima
             contenido = c.nota !== undefined && c.nota !== null ? c.nota : "REALIZADO";
           }
 
-          filaHTML += `<td class="text-center fw-bold align-middle" style="background-color: ${color}; font-size: 0.72rem; border: 1px solid #dee2e6">${contenido}</td>`;
+          filaHTML += `<td class="text-center fw-bold align-middle celda-actividad" style="background-color: ${color}">${contenido}</td>`;
         });
       }
     }
@@ -625,7 +625,7 @@ function capturarTablaComoImagen(datosEstudiantesVisibles = []) {
     btn.disabled = false;
   };
 
-  html2canvas(areaCaptura, { scale: 3, useCORS: true, backgroundColor: "#ffffff" })
+  conTemaClaro(() => html2canvas(areaCaptura, { scale: 3, useCORS: true, backgroundColor: "#ffffff" }))
     .then((canvas) => {
       const link = document.createElement("a");
       link.download = nombreArchivo;

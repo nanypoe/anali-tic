@@ -8,8 +8,12 @@ import {
   registrarCambio,
   descartarCambios,
   obtenerBaseParaExportar,
+  getTipoBase,
 } from "../core/store.js";
 import { formatearEtiquetaGrupo } from "../core/groupFormat.js";
+import { toast } from "./feedback.js";
+import { crearLibro, libroABlob } from "./excelEstilos.js";
+import { crearHojaBase } from "./formatoBase.js";
 
 const MIME_XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
@@ -158,14 +162,38 @@ function renderizarFilas() {
   if (btnDescartar) btnDescartar.disabled = cambios === 0;
 }
 
-function aplicarCambio(est, tipo, valor, modulo = null) {
+/** Valor vigente del campo que se va a cambiar (mismo formato que acepta registrarCambio). */
+function valorVigente(est, tipo, modulo) {
+  if (tipo === "estado") return est.estadoEstudiante === "retirado" ? "Retirado" : "Activo";
+  return est.modulos?.[modulo]?.estaConvalidado ? "Sí" : "No";
+}
+
+function ejecutarCambio(est, tipo, valor, modulo) {
   try {
     const nuevos = registrarCambio(est, tipo, valor, modulo);
     opcionesDelModal.onCambio(nuevos);
     renderizarFilas();
+    return true;
   } catch (error) {
     alert(error.message);
+    return false;
   }
+}
+
+function aplicarCambio(est, tipo, valor, modulo = null) {
+  const anterior = valorVigente(est, tipo, modulo);
+  if (!ejecutarCambio(est, tipo, valor, modulo)) return;
+
+  const nombre = `${est.nombre} ${est.apellidos}`.trim();
+  const detalle = tipo === "estado"
+    ? `Estado de ${nombre}: ${valor}`
+    : `${modulo} de ${nombre}: ${valor === "Sí" ? "convalidado" : "no convalidado"}`;
+  toast(detalle, "exito", {
+    etiqueta: "Deshacer",
+    onClick: () => {
+      if (ejecutarCambio(est, tipo, anterior, modulo)) toast("Cambio deshecho", "info");
+    },
+  });
 }
 
 function manejarClicTabla(e) {
@@ -199,17 +227,15 @@ function nombreSugerido() {
  * En otros navegadores descarga el archivo.
  */
 export async function exportarBaseDatos() {
-  if (typeof XLSX === "undefined") {
-    alert("No se pudo cargar SheetJS para exportar.");
+  if (typeof ExcelJS === "undefined") {
+    alert("No se pudo cargar ExcelJS para exportar.");
     return;
   }
 
   const { columnas, filas } = obtenerBaseParaExportar();
-  const hoja = XLSX.utils.json_to_sheet(filas, { header: columnas });
-  const libro = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(libro, hoja, "Base de datos");
-  const bytes = XLSX.write(libro, { bookType: "xlsx", type: "array" });
-  const blob = new Blob([bytes], { type: MIME_XLSX });
+  const libro = crearLibro();
+  crearHojaBase(libro, { nombre: "Base de datos", esTic: getTipoBase() === "tic", columnas, filas });
+  const blob = await libroABlob(libro);
   const nombre = nombreSugerido();
 
   if (typeof window.showSaveFilePicker === "function") {

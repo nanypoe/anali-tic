@@ -6,46 +6,21 @@
  */
 
 import { toast } from "./feedback.js";
+import { leerPreferencia, guardarPreferencia, animacionesReducidas } from "../core/preferencias.js";
 
 const CLAVE = "anali-tic:intro-vista";
 const CLAVE_SIEMPRE = "anali-tic:intro-siempre";
 const CLAVE_REDUCIR_ANIMACIONES = "anali-tic:reducir-animaciones";
-const DURACION_MS = 2500;
-
-function leerPreferencia(clave) {
-  try {
-    return localStorage.getItem(clave);
-  } catch (error) {
-    console.warn(`No se pudo leer la preferencia "${clave}".`, error);
-    return null;
-  }
-}
-
-function guardarPreferencia(clave, valor) {
-  try {
-    localStorage.setItem(clave, valor);
-    return true;
-  } catch (error) {
-    console.error(`No se pudo guardar la preferencia "${clave}".`, error);
-    return false;
-  }
-}
+const DURACION_MS = 5000;
 
 export function inicializarPreferencias() {
   const reducirAnimaciones = document.getElementById("chk-reducir-animaciones");
   const introSiempre = document.getElementById("chk-intro-siempre");
-  const reduccionDelSistema = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const preferenciaMovimiento = leerPreferencia(CLAVE_REDUCIR_ANIMACIONES);
-  const movimientoReducido = reduccionDelSistema || preferenciaMovimiento === "1";
+  // Por defecto las animaciones están activas; solo se reducen si el usuario lo elige
+  const movimientoReducido = leerPreferencia(CLAVE_REDUCIR_ANIMACIONES) === "1";
 
   document.documentElement.classList.toggle("reducir-animaciones", movimientoReducido);
-  if (reducirAnimaciones) {
-    reducirAnimaciones.checked = movimientoReducido;
-    reducirAnimaciones.disabled = reduccionDelSistema;
-    if (reduccionDelSistema) {
-      reducirAnimaciones.title = "La preferencia de movimiento reducido del sistema está activa.";
-    }
-  }
+  if (reducirAnimaciones) reducirAnimaciones.checked = movimientoReducido;
   if (introSiempre) introSiempre.checked = leerPreferencia(CLAVE_SIEMPRE) === "1";
 
   reducirAnimaciones?.addEventListener("change", () => {
@@ -78,9 +53,7 @@ export function mostrarIntroPrimeraVez() {
   }
   guardarPreferencia(CLAVE, "1");
 
-  const movimientoReducido =
-    document.documentElement.classList.contains("reducir-animaciones") ||
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const movimientoReducido = animacionesReducidas();
   requestAnimationFrame(() => splash.classList.add("visible"));
   setTimeout(() => {
     splash.classList.add("salir");

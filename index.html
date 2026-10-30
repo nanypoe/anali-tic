@@ -43,7 +43,14 @@
             >Sistema de análisis y seguimiento de Aulas Virtuales del Campus INATEC</small
           >
         </div>
-        <div id="ui-preferences" class="d-flex flex-wrap justify-content-end gap-2">
+        <div id="ui-preferences" class="d-flex flex-wrap justify-content-end align-items-center gap-2">
+          <button
+            type="button"
+            id="btn-tema"
+            class="btn btn-sm btn-outline-secondary rounded-pill px-3"
+            aria-pressed="false"
+            title="Cambiar entre modo claro y oscuro"
+          ></button>
           <div class="form-check form-switch small mb-0">
             <input class="form-check-input" type="checkbox" id="chk-reducir-animaciones" />
             <label class="form-check-label" for="chk-reducir-animaciones">Reducir animaciones</label>
@@ -249,7 +256,7 @@
                   <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
                   <input type="text" id="search-input" class="form-control border-start-0" placeholder="Buscar estudiante..." style="width: 190px" />
                 </div>
-                <button class="btn btn-sm btn-dark" id="btn-modo-reporte">Ocultar calificaciones</button>
+                <button class="btn btn-sm btn-dark" id="btn-modo-reporte" title="Oculta las notas y muestra solo el estado de cada actividad">Ocultar calificaciones</button>
                 <button class="btn btn-sm btn-captura" id="btn-capturar-tabla" title="Captura solo lo que muestra la tabla con el filtro activo">
                   <i class="bi bi-camera-fill me-1"></i>Capturar tabla
                 </button>
