@@ -1,7 +1,7 @@
 {
     "id": "26_2semestre_transversales",
     "nombre": "Módulos Transversales II Semestre 2026",
-    "tipo":"modulo",
+    "tipo": "modulo",
     "convalidaciones_map": {
         "Historia e Identidad Nacional": "conv_HIN",
         "Adaptación al Cambio Climático": "conv_ACC",
@@ -98,5 +98,13 @@
                 "Cuestionario:UD4: Act.4.2-Cuest-El Pueblo Presidente a partir de 2007 (Real)"
             ]
         }
+    },
+    "fechas_cierre": {
+        "Historia e Identidad Nacional": "2026-07-21T23:59",
+        "Adaptación al Cambio Climático": "2026-07-21T23:59",
+        "Orientación Laboral": "2026-08-30T23:59",
+        "Identidad Cultural": "2026-09-27T23:59",
+        "Cultura de Paz": "2026-09-27T23:59",
+        "Identidad Histórica y Sociocultural de Nicaragua": ""
     }
 }

@@ -1,7 +1,9 @@
 /* js/ui/esquelaRenderer.js */
 
 import {
-  CENTROS,
+  CENTRO_POR_DEFECTO,
+  centroPredominante,
+  nombreCentroPorCodigo,
   obtenerEstudiantesPendientes,
   obtenerGruposAnalizados,
   detectarModuloOptativoPorGrupo,
@@ -11,6 +13,8 @@ import {
   formatearNombre,
   escaparHtml,
 } from "./exportRenderer.js";
+import { textoCierreDocumento } from "../core/fechas.js";
+import { getTipoBase } from "../core/store.js";
 
 const CDN_DOCX = "https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js";
 const TIPO_MIME_DOCX =
@@ -132,7 +136,7 @@ function crearTablaDatos(docxLib, filas) {
                     crearTexto(docxLib, etiqueta, {
                       size: 20,
                       bold: true,
-                      color: "1F4E79",
+                      color: "5B3DF5",
                     }),
                   ],
                 }),
@@ -229,6 +233,64 @@ function crearFirmas(docxLib) {
   });
 }
 
+/**
+ * Bloque "Cierre del módulo" para cada módulo pendiente con fecha configurada.
+ * Usa el mismo texto que la boleta y WhatsApp, y enlaza con el compromiso de reparación.
+ * Solo aplica a bases TIC.
+ */
+function crearBloqueCierre(docxLib, pendiente, opciones) {
+  if (!opciones.esTic || !opciones.configAula) return [];
+  const avisos = pendiente.modulosPendientes
+    .map((modulo) => ({ modulo, cierre: textoCierreDocumento(opciones.configAula, modulo) }))
+    .filter((a) => a.cierre);
+  if (avisos.length === 0) return [];
+
+  const parrafos = [
+    new docxLib.Paragraph({
+      alignment: docxLib.AlignmentType.LEFT,
+      spacing: { before: 240, after: 100 },
+      children: [
+        crearTexto(docxLib, "CIERRE DEL MÓDULO", { size: 22, bold: true, color: "5B3DF5" }),
+      ],
+    }),
+  ];
+
+  avisos.forEach(({ modulo, cierre }) => {
+    parrafos.push(
+      new docxLib.Paragraph({
+        alignment: docxLib.AlignmentType.LEFT,
+        spacing: { after: 60 },
+        children: [
+          crearTexto(docxLib, `${modulo}: `, { size: 20, bold: true }),
+          crearTexto(docxLib, cierre.titulo, { size: 20, bold: true, color: cierre.vencido ? "B42318" : "7C4A00" }),
+        ],
+      }),
+    );
+    parrafos.push(
+      new docxLib.Paragraph({
+        alignment: docxLib.AlignmentType.JUSTIFIED,
+        spacing: { after: 140, line: 264 },
+        children: [crearTexto(docxLib, cierre.detalle, { size: 20, italics: true })],
+      }),
+    );
+  });
+
+  parrafos.push(
+    new docxLib.Paragraph({
+      alignment: docxLib.AlignmentType.JUSTIFIED,
+      spacing: { after: 200, line: 264 },
+      children: [
+        crearTexto(
+          docxLib,
+          "En concordancia con lo anterior, la reparación del módulo se realizará dentro del período habilitado indicado en esta esquela.",
+          { size: 20 },
+        ),
+      ],
+    }),
+  );
+  return parrafos;
+}
+
 function crearContenidoEsquela(docxLib, pendiente, opciones) {
   const contenido = [];
 
@@ -240,7 +302,7 @@ function crearContenidoEsquela(docxLib, pendiente, opciones) {
         crearTexto(
           docxLib,
           "INSTITUTO NACIONAL TÉCNICO Y TECNOLÓGICO (INATEC)",
-          { size: 24, bold: true, color: "1F4E79" },
+          { size: 24, bold: true, color: "5B3DF5" },
         ),
       ],
     }),
@@ -268,7 +330,7 @@ function crearContenidoEsquela(docxLib, pendiente, opciones) {
         crearTexto(
           docxLib,
           "ESQUELA DE COMPROMISO PARA REPARACIÓN DE MÓDULO",
-          { size: 24, bold: true, color: "1F4E79" },
+          { size: 24, bold: true, color: "5B3DF5" },
         ),
       ],
     }),
@@ -297,9 +359,12 @@ function crearContenidoEsquela(docxLib, pendiente, opciones) {
       ["Módulo(s) Pendiente(s)", pendiente.modulosPendientes.join(", ")],
       ["Fecha de apertura", opciones.fecha],
       ["Hora de inicio", opciones.horaInicio],
+      ["Fecha de cierre", opciones.fechaCierre],
       ["Hora de cierre", opciones.horaFin],
     ]),
   );
+
+  contenido.push(...crearBloqueCierre(docxLib, pendiente, opciones));
 
   contenido.push(
     new docxLib.Paragraph({
@@ -309,7 +374,7 @@ function crearContenidoEsquela(docxLib, pendiente, opciones) {
         crearTexto(docxLib, "COMPROMISO DEL/DE LA ESTUDIANTE", {
           size: 24,
           bold: true,
-          color: "1F4E79",
+          color: "5B3DF5",
         }),
       ],
     }),
@@ -444,12 +509,14 @@ export function mostrarModalEsquela(
   );
   const optativoSelect = document.getElementById("esquela-optativo-selector");
   const fechaInput = document.getElementById("esquela-fecha");
+  const fechaCierreInput = document.getElementById("esquela-fecha-cierre");
   const horaInicioInput = document.getElementById("esquela-hora-inicio");
   const horaFinInput = document.getElementById("esquela-hora-fin");
   const resumen = document.getElementById("esquela-resumen");
   const btnDescargar = document.getElementById("btn-confirmar-esquela");
 
   const grupos = obtenerGruposAnalizados(datosEstudiantes);
+  if (centroSelect) centroSelect.value = centroPredominante(datosEstudiantes) || CENTRO_POR_DEFECTO;
   const estudiantes = (datosEstudiantes || [])
     .map((estudiante, index) => ({ estudiante, index }))
     .filter(({ estudiante }) => estudiante?.estadoEstudiante !== "retirado")
@@ -484,6 +551,7 @@ export function mostrarModalEsquela(
   }
 
   if (fechaInput && !fechaInput.value) fechaInput.value = fechaHoyInput();
+  if (fechaCierreInput && !fechaCierreInput.value) fechaCierreInput.value = fechaInput?.value || fechaHoyInput();
   if (horaInicioInput && !horaInicioInput.value) horaInicioInput.value = "08:00";
   if (horaFinInput && !horaFinInput.value) horaFinInput.value = "12:00";
 
@@ -608,10 +676,12 @@ export function mostrarModalEsquela(
         ? formatearNombre(estudianteActual)
         : grupo?.etiqueta || "";
     const fecha = fechaInput?.value || "";
+    const fechaCierre = fechaCierreInput?.value || "";
     const horaInicio = horaInicioInput?.value || "";
     const horaFin = horaFinInput?.value || "";
+    const rangoValido = !fechaCierre || !fecha || fechaCierre >= fecha;
     const listo = Boolean(
-      fecha && horaInicio && horaFin && pendientes.length > 0,
+      fecha && fechaCierre && horaInicio && horaFin && pendientes.length > 0 && rangoValido,
     );
 
     if (resumen) {
@@ -630,6 +700,8 @@ export function mostrarModalEsquela(
           : `La selección <strong>${escaparHtml(
               etiquetaSeleccion,
             )}</strong> no tiene estudiantes con módulos pendientes.`;
+      } else if (!rangoValido) {
+        resumen.innerHTML = "La <strong>fecha de cierre</strong> no puede ser anterior a la fecha de apertura.";
       } else {
         resumen.innerHTML = `Se generará${
           pendientes.length === 1 ? "" : "n"
@@ -681,7 +753,7 @@ export function mostrarModalEsquela(
     };
   }
 
-  [fechaInput, horaInicioInput, horaFinInput].forEach((input) => {
+  [fechaInput, fechaCierreInput, horaInicioInput, horaFinInput].forEach((input) => {
     if (!input) return;
     input.onchange = actualizarResumen;
     input.oninput = actualizarResumen;
@@ -703,9 +775,12 @@ export function mostrarModalEsquela(
 
       try {
         await descargarEsquelasWord(pendientes, {
-          centro: CENTROS[centroSelect?.value] || CENTROS["che-guevara"],
+          configAula,
+          esTic: getTipoBase() === "tic",
+          centro: nombreCentroPorCodigo(centroSelect?.value || CENTRO_POR_DEFECTO),
           fechaRaw: fechaInput.value,
           fecha: formatearFecha(fechaInput.value),
+          fechaCierre: formatearFecha(fechaCierreInput.value),
           horaInicio: formatearHora(horaInicioInput.value),
           horaFin: formatearHora(horaFinInput.value),
           esGrupo: modoSelect?.value === "grupo",

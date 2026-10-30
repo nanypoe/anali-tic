@@ -16,6 +16,8 @@ Una aplicación web moderna para analizar y visualizar el desempeño académico 
 - **📋 Reportes Flexibles**: Modo reporte que oculta/muestra calificaciones según necesidad
 - **👥 Análisis por Grupos**: Filtrado dinámico por grupo, módulo y estado de completitud
 - **📸 Captura de Pantalla**: Exportar análisis como imágenes (html2canvas)
+- **📊 Exportar Tabla a Excel**: Descarga la vista actual (grupo, módulo y filtros) con notas por actividad
+- **🛠️ Gestión de Estudiantes**: Estado activo/retirado y convalidaciones con guardado y exportación de la base
 - **📥 Exportación Global a Excel**: Registro formateado de estudiantes con módulos pendientes, con Grupo, Carrera en formato TG/TE, filtros automáticos, columnas de firma/seguimiento y hoja de calificaciones detalladas
 - **📝 Esquelas de Compromiso en Word**: Genera esquelas individuales o por grupo con fecha, horario, módulos pendientes y espacios de firma
 - **💬 Integración WhatsApp**: Generador de listas formateadas para compartir en WhatsApp
@@ -27,29 +29,74 @@ Una aplicación web moderna para analizar y visualizar el desempeño académico 
 ```
 anali-tic/
 ├── index.html              # Punto de entrada principal (v2.0)
-├── config/                 # Configuraciones de aulas
-│   └── aulas/
-│       ├── 2026_IHS_IS.json       # Identidad Histórica y Sociocultural
-│       ├── 2026_MT_IIS.json       # Módulo II de Ingeniería de Sistemas
-│       └── 2026_MT_IS.json        # Módulo de Informática Superior
+├── assets/
+│   ├── logo-anali-tic.svg  # Logotipo animado (cabecera)
+│   └── favicon.svg         # Icono estático para pestaña y marcadores
+├── config/
+│   ├── aulas/              # Configuraciones de aulas (módulos, unidades, cuestionarios)
+│   └── diccionarios/
+│       ├── centros.json    # ctche, subsede, ctfabretto -> nombre institucional
+│       └── carreras.json   # zootecnia, programacion... -> nombre completo
 ├── css/
-│   └── styles.css          # Estilos personalizados de la aplicación
+│   └── styles.css          # Estilos y paleta de marca (variables --at-*)
 ├── js/
-│   ├── app.js              # Orquestador principal - flujo de la aplicación
-│   ├── core/               # Lógica central y procesamiento de datos
-│   │   ├── fileParser.js       # Lectura y parseo de archivos Excel/ODS
-│   │   ├── aulaMatcher.js      # Detección inteligente de aulas
-│   │   └── analyzer.js         # Análisis y procesamiento de datos
-│   └── ui/                 # Componentes de interfaz de usuario
-│       ├── tableRenderer.js    # Renderizado de tablas y filtros
-│       ├── chartRenderer.js    # Generación de gráficos y visualizaciones
-│       ├── modalRenderer.js    # Componentes de modales y diálogos
-│       ├── exportRenderer.js   # Exportación global de pendientes a Excel
-│       └── esquelaRenderer.js  # Generación de esquelas de compromiso en Word
-└── README.md               # Este archivo
+│   ├── app.js              # Orquestador: carga de archivos y sesión
+│   ├── core/
+│   │   ├── fileParser.js       # Lectura de Excel/ODS
+│   │   ├── aulaMatcher.js      # Detección de configuración de aula
+│   │   ├── analyzer.js         # Cruce BD + calificaciones y cálculo de avances
+│   │   ├── diccionarios.js     # Resolución de centros y carreras
+│   │   └── store.js            # Sesión, cambios manuales y persistencia local
+│   └── ui/
+│       ├── tableRenderer.js      # Tabla principal, filtros y búsqueda
+│       ├── gestionRenderer.js    # Gestión de estado y convalidaciones + exportar base
+│       ├── exportTablaRenderer.js# Exportar la tabla visible a Excel
+│       ├── plantillaRenderer.js  # Plantillas de base de datos (TIC y Virtual)
+│       ├── chartRenderer.js      # Gráficos y análisis del aula
+│       ├── modalRenderer.js      # Boleta individual (incluye credenciales)
+│       ├── exportRenderer.js     # Exportación global de pendientes a Excel
+│       └── esquelaRenderer.js    # Esquelas de compromiso en Word
+└── README.md
 ```
 
 ---
+
+## 🗄️ Bases de datos
+
+Hay dos tipos de base, y la app detecta cuál se cargó (se muestra como etiqueta en la pantalla de análisis):
+
+- **Base TIC completa** (Docente TIC): columnas `Centro`, `Turno`, `Carrera`, `Código`, `Protagonista`, `Correo electrónico`, `Usuario`, `Teléfono`, `Estado` y `conv_HIN`, `conv_ACC`, `conv_OL`, `conv_IHS`, `conv_IC`, `conv_CP`.
+- **Base básica** (Docente Virtual): `Nombres y apellidos`, `Correo electrónico` y `Grupos`.
+
+Valores válidos:
+
+- **Centro**: `ctche`, `subsede` o `ctfabretto`. El nombre completo sale de `config/diccionarios/centros.json`.
+- **Turno**: `matutino`, `vespertino`, `nocturno`, `sabatino`, `dominical` o `virtual`.
+- **Carrera**: forma corta del diccionario. Su nombre completo sale de `config/diccionarios/carreras.json`. Si el valor está vacío, se usa el nombre corto y falta completarlo.
+- **Estado**: `Activo` o `Retirado`.
+- **conv_XX**: `Sí` convalidado; `No` o vacío, no convalidado.
+
+Las plantillas para cada tipo se descargan desde la pantalla de inicio.
+
+### Año académico y contraseña por defecto
+
+`config/sistema.json` define el año vigente. Al iniciar un nuevo año, cambie `anio_academico` (por ejemplo a 2027): la contraseña por defecto pasa a `Inatec27*` en todas las boletas, sin tocar el código. Si la base trae contraseña propia, esa prevalece y la boleta indica cuando se usa la por defecto.
+
+### Mensajes de WhatsApp
+
+Los textos siguen el formato de WhatsApp: `*negrita*`, `_cursiva_` y separadores. Los nombres se limpian de `* _ ~ `` ` `` antes de enviarse, porque esos caracteres rompen el formato. El aviso de cierre aparece también en el reporte individual y en la lista grupal (solo bases TIC), con el mismo texto que la boleta y la esquela.
+
+### Fechas de cierre de módulos
+
+Cada aula de tipo módulo tiene `fechas_cierre` en su JSON (`config/aulas/*.json`), con formato `AAAA-MM-DDTHH:mm`. Si el valor está vacío, el módulo no muestra aviso. Solo aplica a bases TIC: la boleta muestra la cuenta regresiva, y la captura PNG y el Excel de avance incluyen la misma línea. Cuando el cierre pasa, el aviso indica que el docente puede comunicar el proceso de reparación. Los cursos (Virtual) no tienen esta función.
+
+### Gestionar estudiantes
+
+El botón **Gestionar** abre una lista por grupo para marcar estudiantes como activos o retirados y convalidar módulos. Los cambios:
+
+- Se aplican al análisis en el momento.
+- Se guardan en el navegador y se restauran al volver a cargar la misma base.
+- Se llevan al Excel con **Exportar base actualizada**. En Chrome y Edge se puede sobrescribir el archivo original; en otros navegadores se descarga una copia.
 
 ## 🚀 Inicio Rápido
 

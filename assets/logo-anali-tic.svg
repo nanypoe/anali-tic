@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Logo Anali-TIC">
+  <defs>
+    <linearGradient id="at-fondo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5B3DF5"/>
+      <stop offset="1" stop-color="#3E24C7"/>
+    </linearGradient>
+  </defs>
+  <style>
+    .at-barra { transform-box: fill-box; transform-origin: 50% 100%; animation: at-subir 1.2s cubic-bezier(.2,.8,.2,1) both; }
+    .at-b1 { animation-delay: .1s; }
+    .at-b2 { animation-delay: .22s; }
+    .at-b3 { animation-delay: .34s; }
+    .at-tendencia { stroke-dasharray: 80; stroke-dashoffset: 80; animation: at-trazar 1s .55s ease-out forwards; }
+    .at-punto { opacity: 0; animation: at-aparecer .3s 1.5s forwards; }
+    @keyframes at-subir { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+    @keyframes at-trazar { to { stroke-dashoffset: 0; } }
+    @keyframes at-aparecer { to { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) {
+      .at-barra, .at-tendencia, .at-punto { animation: none; }
+      .at-tendencia { stroke-dashoffset: 0; }
+      .at-punto { opacity: 1; }
+    }
+  </style>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#at-fondo)"/>
+  <rect class="at-barra at-b1" x="13" y="36" width="8" height="15" rx="2" fill="#14B8A6"/>
+  <rect class="at-barra at-b2" x="28" y="26" width="8" height="25" rx="2" fill="#FFFFFF"/>
+  <rect class="at-barra at-b3" x="43" y="16" width="8" height="35" rx="2" fill="#FFB703"/>
+  <polyline class="at-tendencia" pathLength="80" points="11,30 26,21 40,12 53,8" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle class="at-punto" cx="53" cy="8" r="3" fill="#FFB703"/>
+</svg>

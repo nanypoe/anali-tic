@@ -3,12 +3,18 @@
 import {
   mostrarModalBoletaIndividual,
   copiarListaWhatsAppGrupal,
-  mostrarModalCredenciales,
 } from "./modalRenderer.js";
 
 import { mostrarModalMetricasAula } from "./chartRenderer.js";
 import { mostrarModalExportacionPendientes } from "./exportRenderer.js";
 import { mostrarModalEsquela } from "./esquelaRenderer.js";
+import { mostrarModalGestion } from "./gestionRenderer.js";
+import { exportarTablaExcel } from "./exportTablaRenderer.js";
+import { estadoCierre } from "../core/fechas.js";
+import { getTipoBase } from "../core/store.js";
+import { pulsar, toast } from "./feedback.js";
+
+const tipoBaseTic = () => getTipoBase() === "tic";
 
 let modoReporte = false;
 let moduloActivo = "";
@@ -16,32 +22,30 @@ let grupoActivo = "TODOS";
 let filtroEstadoActivo = "TODOS";
 let mostrarRetiradosEnTodos = false;
 
+// Datos vigentes. Se reemplazan al registrar cambios, para que los manejadores
+// de eventos siempre trabajen con la información actual.
+let datosActuales = [];
+let configActual = null;
+let ultimosVisibles = [];
+
 export function inicializarControlesTabla(datosEstudiantes, configAula) {
-  const modulosNombres = Object.keys(configAula.modulos);
-  moduloActivo = modulosNombres[0];
+  datosActuales = datosEstudiantes;
+  configActual = configAula;
+  moduloActivo = Object.keys(configAula.modulos)[0];
 
-  // 1. Renderizar Píldoras de Módulos
-  renderizarPildorasModulos(modulosNombres, datosEstudiantes, configAula);
+  renderizarPildorasModulos();
+  popularSelectorGrupos();
+  configurarFiltrosEstado();
 
-  // 2. Extraer y popular Selector de Grupos dinámicamente
-  popularSelectorGrupos(datosEstudiantes, configAula);
-
-  // 3. Configurar Píldoras de Filtro de Estado
-  configurarFiltrosEstado(datosEstudiantes, configAula);
-
-  // 4. Configurar Buscador, Modo Reporte y Switch de Retirados
   const searchInput = document.getElementById("search-input");
-  if (searchInput) {
-    searchInput.oninput = () =>
-      ejecutarRenderizado(datosEstudiantes, configAula);
-  }
+  if (searchInput) searchInput.oninput = () => ejecutarRenderizado();
 
   const chkRetirados = document.getElementById("chk-mostrar-retirados");
   if (chkRetirados) {
     chkRetirados.checked = mostrarRetiradosEnTodos;
     chkRetirados.onchange = (e) => {
       mostrarRetiradosEnTodos = e.target.checked;
-      ejecutarRenderizado(datosEstudiantes, configAula);
+      ejecutarRenderizado();
     };
   }
 
@@ -54,49 +58,89 @@ export function inicializarControlesTabla(datosEstudiantes, configAula) {
         : "Ocultar calificaciones";
       btnModoReporte.classList.toggle("btn-dark");
       btnModoReporte.classList.toggle("btn-primary");
-      ejecutarRenderizado(datosEstudiantes, configAula);
+      ejecutarRenderizado();
     };
   }
 
-  // INTEGRACIÓN FASE 3: BOTÓN DE ANÁLISIS DEL AULA
   const btnMetricas = document.getElementById("btn-ver-tabla-grupos");
   if (btnMetricas) {
     btnMetricas.onclick = () => {
-      mostrarModalMetricasAula(datosEstudiantes, moduloActivo, configAula);
+      mostrarModalMetricasAula(datosActuales, moduloActivo, configActual);
     };
   }
 
-  // Exportación global de estudiantes con módulos pendientes
-  const btnExportarPendientes = document.getElementById(
-    "btn-exportar-pendientes",
-  );
+  const btnGestion = document.getElementById("btn-gestionar-estudiantes");
+  if (btnGestion) {
+    btnGestion.onclick = () => {
+      mostrarModalGestion({
+        grupoInicial: grupoActivo,
+        onCambio: (nuevosDatos) => refrescarTabla(nuevosDatos),
+      });
+    };
+  }
+
+  const btnExportarTabla = document.getElementById("btn-exportar-tabla");
+  if (btnExportarTabla) {
+    btnExportarTabla.onclick = () => {
+      exportarTablaExcel(ultimosVisibles, moduloActivo, configActual, construirMetaVista(ultimosVisibles));
+    };
+  }
+
+  const btnExportarPendientes = document.getElementById("btn-exportar-pendientes");
   if (btnExportarPendientes) {
     btnExportarPendientes.onclick = () => {
-      mostrarModalExportacionPendientes(datosEstudiantes, configAula);
+      mostrarModalExportacionPendientes(datosActuales, configActual);
     };
   }
 
-  // Generación de esquelas de compromiso en Word
   const btnEsquelaGlobal = document.getElementById("btn-esquela-global");
   if (btnEsquelaGlobal) {
     btnEsquelaGlobal.onclick = () => {
-      mostrarModalEsquela(datosEstudiantes, configAula);
+      mostrarModalEsquela(datosActuales, configActual);
     };
   }
 
-  // Renderizado inicial
-  ejecutarRenderizado(datosEstudiantes, configAula);
+  ejecutarRenderizado();
 }
 
-function renderizarPildorasModulos(modulos, datosEstudiantes, configAula) {
+/**
+ * Actualiza la tabla con datos nuevos (tras editar estados o convalidaciones),
+ * conservando los filtros activos.
+ */
+export function refrescarTabla(nuevosDatos) {
+  datosActuales = nuevosDatos;
+  popularSelectorGrupos();
+  ejecutarRenderizado();
+}
+
+/** Paleta por módulo: cada módulo tiene su color al activarse. */
+const COLORES_MODULO = ["#5B3DF5", "#0EA5E9", "#14B8A6", "#F97316", "#EC4899", "#84CC16", "#A855F7", "#EF4444"];
+
+/** Icono según el nombre del módulo (palabras clave). */
+function iconoModulo(nombre) {
+  const n = nombre.toLowerCase();
+  if (n.includes("histor")) return "bi-bank2";
+  if (n.includes("clima") || n.includes("ambient")) return "bi-tree-fill";
+  if (n.includes("laboral")) return "bi-briefcase-fill";
+  if (n.includes("cultural")) return "bi-palette-fill";
+  if (n.includes("paz")) return "bi-balloon-heart-fill";
+  if (n.includes("ofim")) return "bi-file-earmark-spreadsheet-fill";
+  if (n.includes("excel")) return "bi-table";
+  if (n.includes("contab") || n.includes("control")) return "bi-calculator-fill";
+  return "bi-journal-bookmark-fill";
+}
+
+function renderizarPildorasModulos() {
   const container = document.getElementById("pills-modulos");
   if (!container) return;
 
+  const modulos = Object.keys(configActual.modulos);
   container.innerHTML = modulos
     .map(
       (mod, idx) => `
-    <button class="btn-pill ${idx === 0 ? "active" : ""}" data-modulo="${mod}">
-      <i class="bi bi-journal-bookmark"></i> ${mod}
+    <button class="btn-pill btn-pill-modulo ${mod === moduloActivo ? "active" : ""}" data-modulo="${mod}"
+            style="--pill-color:${COLORES_MODULO[idx % COLORES_MODULO.length]}" title="${mod}">
+      <i class="bi ${iconoModulo(mod)} pill-icono"></i><span class="pill-texto">${mod}</span>
     </button>
   `,
     )
@@ -108,40 +152,47 @@ function renderizarPildorasModulos(modulos, datosEstudiantes, configAula) {
         .querySelectorAll(".btn-pill")
         .forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
+      pulsar(btn);
       moduloActivo = btn.getAttribute("data-modulo");
-      ejecutarRenderizado(datosEstudiantes, configAula);
+      toast(`Módulo: ${moduloActivo}`, "info");
+      ejecutarRenderizado();
     };
   });
 }
 
-function popularSelectorGrupos(datosEstudiantes, configAula) {
+function popularSelectorGrupos() {
   const grupoSelect = document.getElementById("grupo-selector");
   if (!grupoSelect) return;
 
   const gruposSet = new Set();
-  datosEstudiantes.forEach((est) => {
+  datosActuales.forEach((est) => {
     if (est.grupoInfo && est.grupoInfo.etiquetaGrupo) {
       gruposSet.add(est.grupoInfo.etiquetaGrupo);
     }
   });
 
+  const grupos = Array.from(gruposSet)
+    .filter((grp) => grp !== "Sin Grupo Asignado")
+    .sort();
+
+  if (grupoActivo !== "TODOS" && !grupos.includes(grupoActivo)) {
+    grupoActivo = "TODOS";
+  }
+
   let optionsHTML = `<option value="TODOS">Todos los grupos</option>`;
-  Array.from(gruposSet)
-    .sort()
-    .forEach((grp) => {
-      if (grp !== "Sin Grupo Asignado") {
-        optionsHTML += `<option value="${grp}">${grp}</option>`;
-      }
-    });
+  grupos.forEach((grp) => {
+    optionsHTML += `<option value="${grp}">${grp}</option>`;
+  });
 
   grupoSelect.innerHTML = optionsHTML;
+  grupoSelect.value = grupoActivo;
   grupoSelect.onchange = (e) => {
     grupoActivo = e.target.value;
-    ejecutarRenderizado(datosEstudiantes, configAula);
+    ejecutarRenderizado();
   };
 }
 
-function configurarFiltrosEstado(datosEstudiantes, configAula) {
+function configurarFiltrosEstado() {
   const container = document.getElementById("pills-estados");
   if (!container) return;
 
@@ -152,14 +203,8 @@ function configurarFiltrosEstado(datosEstudiantes, configAula) {
         e.target.classList.contains("badge") &&
         (estadoAttr === "COMPLETADO" || estadoAttr === "PENDIENTE")
       ) {
-        const tipoWA =
-          estadoAttr === "COMPLETADO" ? "COMPLETADOS" : "PENDIENTES";
-        copiarListaWhatsAppGrupal(
-          datosEstudiantes,
-          moduloActivo,
-          grupoActivo,
-          tipoWA,
-        );
+        const tipoWA = estadoAttr === "COMPLETADO" ? "COMPLETADOS" : "PENDIENTES";
+        copiarListaWhatsAppGrupal(datosActuales, moduloActivo, grupoActivo, tipoWA, { configAula: configActual, esTic: tipoBaseTic() });
         return;
       }
 
@@ -167,28 +212,48 @@ function configurarFiltrosEstado(datosEstudiantes, configAula) {
         .querySelectorAll(".btn-pill")
         .forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
+      pulsar(btn);
       filtroEstadoActivo = estadoAttr;
-      ejecutarRenderizado(datosEstudiantes, configAula);
+      ejecutarRenderizado();
+      toast(`${ETIQUETAS_FILTRO[estadoAttr]}: ${ultimosVisibles.length} estudiante(s)`, estadoAttr === "RETIRADO" ? "aviso" : "info");
     };
   });
 }
 
-function ejecutarRenderizado(datosEstudiantes, configAula) {
+/**
+ * Regla única de visibilidad:
+ * - Retirados solo aparecen en el filtro "Retirados".
+ * - En "TODOS" aparecen únicamente si el switch "Incluir retirados" está activo.
+ * - Cualquier otro filtro (Completados, Pendientes, Convalidados) excluye a los retirados.
+ */
+function filtrarPorEstado(lista) {
+  return lista.filter((est) => {
+    const retirado = est.estadoEstudiante === "retirado";
+
+    if (filtroEstadoActivo === "RETIRADO") return retirado;
+    if (filtroEstadoActivo === "TODOS") return !retirado || mostrarRetiradosEnTodos;
+    if (retirado) return false;
+
+    const mod = est.modulos ? est.modulos[moduloActivo] : null;
+    if (!mod) return false;
+    if (filtroEstadoActivo === "CONVALIDADO") return mod.estaConvalidado;
+    if (filtroEstadoActivo === "COMPLETADO") return mod.completado && !mod.estaConvalidado;
+    if (filtroEstadoActivo === "PENDIENTE") return !mod.completado && !mod.estaConvalidado;
+    return true;
+  });
+}
+
+function ejecutarRenderizado() {
   const searchInput = document.getElementById("search-input");
   const termino = searchInput ? searchInput.value.toLowerCase() : "";
-  const btnCaptura = document.getElementById("btn-capturar-tabla");
 
   // 1. Filtrado por Grupo
   let filtrados =
     grupoActivo === "TODOS"
-      ? datosEstudiantes
-      : datosEstudiantes.filter(
+      ? datosActuales
+      : datosActuales.filter(
           (est) => est.grupoInfo && est.grupoInfo.etiquetaGrupo === grupoActivo,
         );
-
-  if (btnCaptura) {
-    btnCaptura.onclick = () => capturarTablaComoImagen(filtrados);
-  }
 
   // 2. Filtrado por Búsqueda
   if (termino) {
@@ -199,59 +264,56 @@ function ejecutarRenderizado(datosEstudiantes, configAula) {
     );
   }
 
-  // 3. Recalcular Métricas Dinámicas
+  // 3. Métricas de las píldoras (según el grupo y la búsqueda)
   actualizarBadgesMetricas(filtrados);
 
-  // 4. Filtrado por Estado (Excluye retirados en "TODOS" salvo si el switch está activado)
-  if (filtroEstadoActivo === "TODOS") {
-    if (!mostrarRetiradosEnTodos) {
-      filtrados = filtrados.filter((est) => est.estadoEstudiante !== "retirado");
-    }
-  } else {
-    filtrados = filtrados.filter((est) => {
-      const mod = est.modulos ? est.modulos[moduloActivo] : null;
-      if (!mod) return false;
-      if (filtroEstadoActivo === "RETIRADO")
-        return est.estadoEstudiante === "retirado";
-      if (filtroEstadoActivo === "CONVALIDADO") return mod.estaConvalidado;
-      if (filtroEstadoActivo === "COMPLETADO")
-        return mod.completado && !mod.estaConvalidado;
-      if (filtroEstadoActivo === "PENDIENTE")
-        return (
-          !mod.completado &&
-          !mod.estaConvalidado &&
-          est.estadoEstudiante !== "retirado"
-        );
-      return true;
-    });
-  }
+  // 4. Filtrado por estado (aplica la regla de retirados)
+  filtrados = filtrarPorEstado(filtrados);
 
   filtrados.sort((a, b) =>
     a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }),
   );
 
-  renderizarTabla(filtrados, configAula, datosEstudiantes);
+  ultimosVisibles = filtrados;
+
+  // La captura y la exportación siempre usan exactamente lo que se ve en pantalla
+  const btnCaptura = document.getElementById("btn-capturar-tabla");
+  if (btnCaptura) btnCaptura.onclick = () => capturarTablaComoImagen(ultimosVisibles);
+
+  // El switch solo tiene sentido en la píldora TODOS
+  const chk = document.getElementById("chk-mostrar-retirados");
+  if (chk) {
+    chk.disabled = filtroEstadoActivo !== "TODOS";
+    chk.closest(".form-switch")?.classList.toggle("opacity-50", filtroEstadoActivo !== "TODOS");
+  }
+
+  renderizarTabla(filtrados, configActual, datosActuales);
 }
 
 function actualizarBadgesMetricas(estudiantesVisibles) {
-  let tod = estudiantesVisibles.length;
-  let comp = 0,
-    prog = 0,
-    conv = 0,
-    ret = 0;
+  let tod = 0, comp = 0, prog = 0, conv = 0, ret = 0;
 
   estudiantesVisibles.forEach((est) => {
+    const esRetirado = est.estadoEstudiante === "retirado";
+    if (esRetirado) ret++;
+    if (!esRetirado || mostrarRetiradosEnTodos) tod++;
+
     const mod = est.modulos ? est.modulos[moduloActivo] : null;
-    if (!mod) return;
-    if (est.estadoEstudiante === "retirado") ret++;
-    else if (mod.estaConvalidado) conv++;
+    if (!mod || esRetirado) return;
+    if (mod.estaConvalidado) conv++;
     else if (mod.completado) comp++;
     else prog++;
   });
 
   const setBadge = (id, val) => {
     const el = document.getElementById(id);
-    if (el) el.innerText = val;
+    if (!el) return;
+    if (el.innerText !== String(val)) {
+      el.innerText = val;
+      el.classList.remove("badge-pop");
+      void el.offsetWidth;
+      el.classList.add("badge-pop");
+    }
   };
 
   setBadge("badge-cnt-todos", tod);
@@ -271,7 +333,7 @@ export function renderizarTabla(datos, configAula, datosCompletos = datos) {
   head.innerHTML = "";
 
   if (!datos || datos.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="100%" class="text-center py-4 text-muted">No se encontraron registros para este filtro</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="100%"><div class="vacio-ilustrado"><img src="./assets/ilustracion-vacio.svg" alt="" /><div class="fw-semibold">No hay estudiantes para este filtro</div><small>Prueba con otro grupo, otra píldora o limpia la búsqueda.</small></div></td></tr>`;
     return;
   }
 
@@ -280,21 +342,18 @@ export function renderizarTabla(datos, configAula, datosCompletos = datos) {
   let totalCuestionariosModulo = 0;
   let filaCues = `<tr>`;
 
-  // 1. Calculamos el total de actividades en todo el módulo/curso
   for (let uni in unidadesConfig) {
     totalCuestionariosModulo += unidadesConfig[uni].length;
   }
 
-  // 2. Fila superior: Estudiante, Credenciales, Encabezado General de ACTIVIDADES y Estado
+  // Encabezado: Estudiante, Esquela, ACTIVIDADES y Estado (las credenciales viven en la boleta)
   let filaUni = `<tr>
     <th rowspan="3" class="align-middle text-start px-3 col-estudiante">Estudiante</th>
-    <th rowspan="3" class="align-middle text-center col-acciones" style="width: 60px;">Credenciales</th>
     <th rowspan="3" class="align-middle text-center col-acciones" style="width: 60px;">Esquela</th>
     <th colspan="${totalCuestionariosModulo}" class="text-center fw-bold col-actividades align-middle" style="letter-spacing: 1px;">ACTIVIDADES</th>
     <th rowspan="3" class="align-middle text-center">Estado</th>
   </tr><tr>`;
 
-  // 3. Segunda fila (Unidades) y Tercera fila (Sub-actividades A1, A2...)
   for (let uni in unidadesConfig) {
     const cuestionarios = unidadesConfig[uni];
     filaUni += `<th colspan="${cuestionarios.length}" class="bg-primary text-white p-1 text-center" style="font-size: 0.65rem">${uni}</th>`;
@@ -320,11 +379,6 @@ export function renderizarTabla(datos, configAula, datosCompletos = datos) {
     let filaHTML = `
       <td class="text-start px-3 py-2">
         <div class="fw-semibold text-uppercase small text-primary col-estudiante">${est.nombre} ${est.apellidos}</div>
-      </td>
-      <td class="text-center align-middle col-acciones" onclick="event.stopPropagation()">
-        <button class="btn btn-xs btn-outline-secondary btn-credenciales" title="Ver Credenciales CAMPUS">
-          <i class="bi bi-key-fill"></i>
-        </button>
       </td>
       <td class="text-center align-middle col-acciones" onclick="event.stopPropagation()">
         ${
@@ -360,7 +414,6 @@ export function renderizarTabla(datos, configAula, datosCompletos = datos) {
           if (modoReporte) {
             contenido = `<span style="font-size: 9px">${c.estado}</span>`;
           } else if (tipoAula === "curso" && c.estado === "REALIZADO") {
-            // Si es un curso y no está en modo reporte, puedes mostrar la nota real o "REALIZADO"
             contenido = c.nota !== undefined && c.nota !== null ? c.nota : "REALIZADO";
           }
 
@@ -383,19 +436,16 @@ export function renderizarTabla(datos, configAula, datosCompletos = datos) {
       textoEstado = "COMPLETADO";
     }
 
-    filaHTML += `<td class="text-center align-middle"><span class="badge ${badgeClase}">${textoEstado}</span></td>`;
+    const iconoEstado = {
+      RETIRADO: "bi-person-dash-fill",
+      CONVALIDADO: "bi-patch-check-fill",
+      COMPLETADO: "bi-check2-circle",
+      PENDIENTE: "bi-hourglass-split",
+    }[textoEstado];
+    filaHTML += `<td class="text-center align-middle"><span class="badge badge-estado ${badgeClase}"><i class="bi ${iconoEstado} me-1"></i>${textoEstado}</span></td>`;
     tr.innerHTML = filaHTML;
 
-    tr.onclick = () =>
-      mostrarModalBoletaIndividual(est, moduloActivo, configAula);
-
-    const btnCred = tr.querySelector(".btn-credenciales");
-    if (btnCred) {
-      btnCred.onclick = (e) => {
-        e.stopPropagation();
-        mostrarModalCredenciales(est);
-      };
-    }
+    tr.onclick = () => mostrarModalBoletaIndividual(est, moduloActivo, configAula);
 
     const btnEsquela = tr.querySelector(".btn-esquela");
     if (btnEsquela) {
@@ -409,10 +459,35 @@ export function renderizarTabla(datos, configAula, datosCompletos = datos) {
   });
 }
 
+const ETIQUETAS_FILTRO = {
+  TODOS: "Todos los estudiantes",
+  COMPLETADO: "Completados",
+  PENDIENTE: "Pendientes",
+  CONVALIDADO: "Convalidados",
+  RETIRADO: "Retirados",
+};
+
+/** Metadatos de la vista actual: se usan en el encabezado de la captura y del Excel. */
+function construirMetaVista(visibles) {
+  const grupoSelect = document.getElementById("grupo-selector");
+  const grupo =
+    grupoSelect && grupoSelect.selectedIndex >= 0
+      ? grupoSelect.options[grupoSelect.selectedIndex].text.trim()
+      : "Todos los grupos";
+  const turnos = [...new Set(visibles.map((e) => e.grupoInfo?.turno).filter(Boolean))];
+  const turno = turnos.length === 1 ? turnos[0] : turnos.length > 1 ? "Varios turnos" : "Sin turno";
+  return {
+    grupo,
+    turno,
+    filtro: ETIQUETAS_FILTRO[filtroEstadoActivo] || "Todos los estudiantes",
+    incluyeRetirados: filtroEstadoActivo === "TODOS" && mostrarRetiradosEnTodos,
+    cierre: tipoBaseTic() ? estadoCierre(configActual, moduloActivo) : null,
+  };
+}
+
 function capturarTablaComoImagen(datosEstudiantesVisibles = []) {
   const tabla = document.getElementById("tabla-resultados");
   const btn = document.getElementById("btn-capturar-tabla");
-  const grupoSelect = document.getElementById("grupo-selector");
   if (!tabla || !btn) return;
 
   const areaCaptura = tabla.parentElement;
@@ -420,8 +495,9 @@ function capturarTablaComoImagen(datosEstudiantesVisibles = []) {
   btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Generando...`;
   btn.disabled = true;
 
-  const estiloOriginalTablaWidth = tabla ? tabla.style.width : "";
+  const estiloOriginalTablaWidth = tabla.style.width;
   const estiloOriginalContenedorWidth = areaCaptura.style.width;
+  const estiloOriginalFlex = areaCaptura.style.flex;
   const estiloOriginalDisplay = areaCaptura.style.display;
 
   const elementosAcciones = areaCaptura.querySelectorAll(".col-acciones");
@@ -430,62 +506,81 @@ function capturarTablaComoImagen(datosEstudiantesVisibles = []) {
     el.style.display = "none";
   });
 
-  if (tabla) tabla.style.width = "max-content";
+  tabla.style.setProperty("width", "max-content", "important");
+  // Se libera el scroll para que la captura incluya todas las filas, no solo las visibles
+  const estiloScrollOriginal = { overflow: areaCaptura.style.overflow, maxHeight: areaCaptura.style.maxHeight, height: areaCaptura.style.height };
+  areaCaptura.style.overflow = "visible";
+  areaCaptura.style.maxHeight = "none";
+  areaCaptura.style.height = "auto";
+  areaCaptura.classList.add("captura-estatica");
   areaCaptura.style.width = "fit-content";
   areaCaptura.style.display = "inline-block";
 
-  let textoGrupoSeleccionado = "TODOS_LOS_GRUPOS";
-  if (grupoSelect && grupoSelect.selectedIndex >= 0) {
-    textoGrupoSeleccionado =
-      grupoSelect.options[grupoSelect.selectedIndex].text.trim();
-  }
+  const { grupo: textoGrupo, turno, filtro, incluyeRetirados, cierre } = construirMetaVista(datosEstudiantesVisibles);
 
-  let turno = "matutino";
-  if (datosEstudiantesVisibles && datosEstudiantesVisibles.length > 0) {
-    const primerEst = datosEstudiantesVisibles[0];
-    if (primerEst.grupoInfo && primerEst.grupoInfo.turno) {
-      turno = primerEst.grupoInfo.turno;
-    } else if (primerEst.turno) {
-      turno = primerEst.turno;
-    }
-  }
+  const lineaCierre = cierre && cierre.estado !== "sin_fecha"
+    ? `<span style="padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap;
+         background-color: ${cierre.estado === "vencido" ? "#FF6B5B" : "#FFF3C4"}; color: ${cierre.estado === "vencido" ? "#FFFFFF" : "#5B3A00"};">
+         ${cierre.estado === "vencido" ? "Cerrado" : "Cierre"}: ${cierre.textoCorto}
+       </span>`
+    : "";
 
-  const headerTemporal = document.createElement("div");
-  headerTemporal.id = "encabezado-captura-temp";
-  headerTemporal.style.cssText = `
-    padding: 15px 20px;
-    margin-bottom: 15px;
-    background-color: #ffffff;
-    border-bottom: 3px solid #0d6efd;
+  const header = document.createElement("div");
+  header.id = "encabezado-captura-temp";
+  header.style.cssText = `
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    padding: 8px 14px;
+    margin-bottom: 8px;
+    background-color: #5B3DF5;
+    border-radius: 10px;
     width: 100%;
     box-sizing: border-box;
+    color: #FFFFFF;
+    font-family: system-ui, sans-serif;
   `;
-  headerTemporal.innerHTML = `
-    <h2 style="margin: 0; font-size: 1.4rem; font-weight: bold; color: #0d6efd; text-transform: uppercase;">
-      ${textoGrupoSeleccionado}
-    </h2>
-    <h5 style="margin: 5px 0 0 0; font-size: 1rem; color: #6c757d; text-transform: capitalize;">
-      Turno: ${turno} | Módulo/Curso: ${moduloActivo}
-    </h5>
+  header.innerHTML = `
+    <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; min-width: 0; flex: 1 1 auto;">
+      <span style="padding: 4px 10px; border-radius: 7px; background-color: #FFB703; color: #1E1B3A; font-size: 15px; font-weight: 800; text-transform: uppercase; white-space: nowrap;">${moduloActivo}</span>
+      <span style="font-size: 12px; opacity: 0.95;">${textoGrupo} &nbsp;·&nbsp; Turno <b>${turno}</b> &nbsp;·&nbsp; ${filtro}${incluyeRetirados ? " + retirados" : ""} &nbsp;·&nbsp; <b>${datosEstudiantesVisibles.length}</b> estudiante(s)</span>
+    </div>
+    ${lineaCierre}
   `;
-
-  areaCaptura.insertBefore(headerTemporal, tabla);
+  areaCaptura.insertBefore(header, tabla);
+  // El contenedor flexible tiende a estirarse: se fija al ancho real de la tabla para que el encabezado no sobresalga
+  const anchoTabla = Math.ceil(tabla.getBoundingClientRect().width);
+  areaCaptura.style.flex = "none";
+  areaCaptura.style.width = `${anchoTabla}px`;
+  header.style.width = `${anchoTabla}px`;
 
   const hoy = new Date();
   const fechaStr = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(hoy.getDate()).padStart(2, "0")}`;
   const horaStr = `${String(hoy.getHours()).padStart(2, "0")}:${String(hoy.getMinutes()).padStart(2, "0")}`;
+  const limpiar = (t) => String(t).replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_\-]/g, "");
+  const nombreArchivo = `${fechaStr}_${horaStr}_${limpiar(moduloActivo)}_${limpiar(textoGrupo)}_${limpiar(filtro)}.png`;
 
-  const grupoClean = textoGrupoSeleccionado
-    .replace(/\s+/g, "_")
-    .replace(/[^a-zA-Z0-9_\-]/g, "");
-  const turnoClean = turno.toLowerCase().replace(/\s+/g, "_");
-  const nombreArchivo = `${fechaStr}_${horaStr}_Avance_${grupoClean}_${turnoClean}.png`;
+  const restaurar = () => {
+    elementosAcciones.forEach((el) => {
+      el.style.display = el.dataset.displayOriginal || "";
+      delete el.dataset.displayOriginal;
+    });
+    tabla.style.width = estiloOriginalTablaWidth;
+    areaCaptura.classList.remove("captura-estatica");
+    areaCaptura.style.overflow = estiloScrollOriginal.overflow;
+    areaCaptura.style.maxHeight = estiloScrollOriginal.maxHeight;
+    areaCaptura.style.height = estiloScrollOriginal.height;
+    areaCaptura.style.width = estiloOriginalContenedorWidth;
+    areaCaptura.style.flex = estiloOriginalFlex;
+    areaCaptura.style.display = estiloOriginalDisplay;
+    if (header.parentNode) header.parentNode.removeChild(header);
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+  };
 
-  html2canvas(areaCaptura, {
-    scale: 3,
-    useCORS: true,
-    backgroundColor: "#ffffff",
-  })
+  html2canvas(areaCaptura, { scale: 3, useCORS: true, backgroundColor: "#ffffff" })
     .then((canvas) => {
       const link = document.createElement("a");
       link.download = nombreArchivo;
@@ -496,21 +591,5 @@ function capturarTablaComoImagen(datosEstudiantesVisibles = []) {
       console.error("Error al capturar la imagen PNG:", err);
       alert("Error al capturar la imagen");
     })
-    .finally(() => {
-      elementosAcciones.forEach((el) => {
-        el.style.display = el.dataset.displayOriginal || "";
-        delete el.dataset.displayOriginal;
-      });
-
-      if (tabla) tabla.style.width = estiloOriginalTablaWidth;
-      areaCaptura.style.width = estiloOriginalContenedorWidth;
-      areaCaptura.style.display = estiloOriginalDisplay;
-
-      if (headerTemporal && headerTemporal.parentNode) {
-        headerTemporal.parentNode.removeChild(headerTemporal);
-      }
-
-      btn.innerHTML = originalText;
-      btn.disabled = false;
-    });
+    .finally(restaurar);
 }

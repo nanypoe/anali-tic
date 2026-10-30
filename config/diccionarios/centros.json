@@ -1,0 +1,14 @@
+{
+    "ctche": {
+        "nombre": "CENTRO TECNOLÓGICO CHE GUEVARA, SOMOTO",
+        "municipio": "Somoto"
+    },
+    "subsede": {
+        "nombre": "SUBSEDE AGROPECUARIA, PALACAGÜINA",
+        "municipio": "Palacaguina"
+    },
+    "ctfabretto": {
+        "nombre": "CENTRO TECNOLÓGICO PADRE RAFAEL MARÍA FABRETTO, CUSMAPA",
+        "municipio": "Cusmapa"
+    }
+}

@@ -1,7 +1,7 @@
 {
     "id": "26_1semestre_transversales",
     "nombre": "Módulos Transversales I Semestre 2026",
-    "tipo":"modulo",
+    "tipo": "modulo",
     "convalidaciones_map": {
         "Historia e Identidad Nacional": "conv_HIN",
         "Adaptación al Cambio Climático": "conv_ACC",
@@ -83,5 +83,12 @@
                 "Cuestionario:Cuestionario UIII: Tema 3 Fundamentos del Código de conducta (Real)"
             ]
         }
+    },
+    "fechas_cierre": {
+        "Historia e Identidad Nacional": "2026-07-21T23:59",
+        "Adaptación al Cambio Climático": "2026-07-21T23:59",
+        "Orientación Laboral": "2026-08-30T23:59",
+        "Identidad Cultural": "2026-09-27T23:59",
+        "Cultura de Paz": "2026-09-27T23:59"
     }
 }

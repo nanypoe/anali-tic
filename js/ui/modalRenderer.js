@@ -1,5 +1,10 @@
 /* js/ui/modalRenderer.js */
 
+import { getTipoBase } from "../core/store.js";
+import { estadoCierre, formatearFechaHora, textoCierreDocumento } from "../core/fechas.js";
+import { toast } from "./feedback.js";
+import { contrasenaPorDefecto, anioAcademico } from "../core/diccionarios.js";
+
 /**
  * 2.1. Renderiza la Ficha/Boleta Individual en el modal #modalBoletaIndividual
  */
@@ -68,7 +73,8 @@ export function mostrarModalBoletaIndividual(estudiante, moduloNombre, configAul
     detallesCuestionarios,
     esRetirado,
     esConvalidado,
-    tipoAula
+    tipoAula,
+    configAula
   );
 
   const modalBody = modalEl.querySelector(".modal-body");
@@ -87,17 +93,19 @@ export function mostrarModalBoletaIndividual(estudiante, moduloNombre, configAul
         <div class="text-end">
           <div class="mb-2">${estadoBadgeHTML}</div>
           <small class="text-muted fw-bold d-block">${etiquetaTipo}</small>
-          <span class="fw-bold text-uppercase text-secondary">${moduloNombre}</span>
+          <div class="modulo-chip mt-1">${moduloNombre}</div>
         </div>
       </div>
+
+      ${renderizarAvisoCierre(configAula, moduloNombre)}
 
       <div class="mb-4">
         <div class="d-flex justify-content-between align-items-center mb-1">
           <small class="fw-bold text-muted">Avance del Módulo/Curso</small>
           <small class="fw-bold text-primary">${porcentaje}%</small>
         </div>
-        <div class="progress" style="height: 10px;">
-          <div class="progress-bar ${porcentaje === 100 ? 'bg-success' : 'bg-primary'}" role="progressbar" style="width: ${porcentaje}%"></div>
+        <div class="progress progress-marca" style="height: 12px;">
+          <div class="progress-bar ${porcentaje === 100 ? 'bg-success' : 'progress-bar-marca'}" role="progressbar" style="width: ${porcentaje}%"></div>
         </div>
       </div>
 
@@ -106,6 +114,8 @@ export function mostrarModalBoletaIndividual(estudiante, moduloNombre, configAul
         ${renderizarDesgloseUnidadesConNombres(modData, esRetirado, esConvalidado, moduloNombre, configAula)}
       </div>
     </div>
+
+    ${renderizarBloqueCredenciales(estudiante)}
 
     <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mt-3 pt-3 border-top">
       <div>
@@ -125,10 +135,12 @@ export function mostrarModalBoletaIndividual(estudiante, moduloNombre, configAul
   if (btnCopiar) {
     btnCopiar.onclick = () => {
       navigator.clipboard.writeText(textoReporteDetallado).then(() => {
-        alert("¡Reporte detallado copiado al portapapeles!");
+        toast("Reporte copiado al portapapeles", "exito");
       });
     };
   }
+
+  vincularBloqueCredenciales(modalBody);
 
   const btnCapturar = modalBody.querySelector("#btn-capturar-boleta");
   if (btnCapturar) {
@@ -137,6 +149,69 @@ export function mostrarModalBoletaIndividual(estudiante, moduloNombre, configAul
 
   const bsModal = new bootstrap.Modal(modalEl);
   bsModal.show();
+}
+
+/**
+ * Bloque de credenciales dentro de la boleta. Oculto por defecto y fuera del área de captura PNG.
+ */
+function renderizarBloqueCredenciales(estudiante) {
+  const datos = estudiante.datosContacto || {};
+  if (!datos.usuario && !datos.contrasena) {
+    return `<div class="small text-muted mt-3"><i class="bi bi-shield-exclamation me-1"></i>Credenciales de CAMPUS no disponibles en la base de datos.</div>`;
+  }
+  const etiquetaOrigen = datos.contrasenaPorDefecto
+    ? `<span class="badge bg-warning-subtle text-dark ms-1" title="La base no trae contraseña; se usa la del año ${anioAcademico()}">por defecto ${anioAcademico()}</span>`
+    : "";
+  const campo = (etiqueta, valor, extra = "") => `
+    <div class="mb-2">
+      <small class="text-muted d-block fw-bold">${etiqueta}</small>
+      <div class="input-group input-group-sm">
+        <input type="text" readonly class="form-control bg-white credencial-valor" value="${escaparAtributo(valor)}" />
+        <button class="btn btn-outline-primary btn-copiar-credencial" type="button" data-valor="${escaparAtributo(valor)}" title="Copiar">
+          <i class="bi bi-clipboard"></i>
+        </button>
+      </div>
+    </div>`;
+  return `
+    <div class="mt-3 border rounded-3 p-3 bg-light">
+      <div class="d-flex justify-content-between align-items-center">
+        <small class="fw-bold text-muted"><i class="bi bi-shield-lock me-1"></i>Credenciales CAMPUS</small>
+        <button class="btn btn-sm btn-outline-secondary" type="button" id="btn-mostrar-credenciales">
+          <i class="bi bi-eye me-1"></i> Mostrar
+        </button>
+      </div>
+      <div id="bloque-credenciales" class="d-none mt-3">
+        ${campo("USUARIO", datos.usuario || "")}
+        ${campo("CONTRASEÑA" + etiquetaOrigen, datos.contrasena || "")}
+      </div>
+    </div>`;
+}
+
+function escaparAtributo(texto) {
+  return String(texto ?? "").replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  })[c]);
+}
+
+function vincularBloqueCredenciales(contenedor) {
+  const btnMostrar = contenedor.querySelector("#btn-mostrar-credenciales");
+  const bloque = contenedor.querySelector("#bloque-credenciales");
+  if (btnMostrar && bloque) {
+    btnMostrar.onclick = () => {
+      const oculto = bloque.classList.toggle("d-none");
+      btnMostrar.innerHTML = oculto
+        ? '<i class="bi bi-eye me-1"></i> Mostrar'
+        : '<i class="bi bi-eye-slash me-1"></i> Ocultar';
+    };
+  }
+  contenedor.querySelectorAll(".btn-copiar-credencial").forEach((btn) => {
+    btn.onclick = () => {
+      navigator.clipboard.writeText(btn.dataset.valor).then(() => {
+        btn.innerHTML = '<i class="bi bi-clipboard-check"></i>';
+        setTimeout(() => (btn.innerHTML = '<i class="bi bi-clipboard"></i>'), 1200);
+      });
+    };
+  });
 }
 
 /**
@@ -224,21 +299,88 @@ function renderizarDesgloseUnidadesConNombres(modData, esRetirado, esConvalidado
   return html;
 }
 
+/* ---------- Formato WhatsApp ----------
+ * Reglas: *negrita*, _cursiva_, ~tachado~, ```monospace```.
+ * Los marcadores no pueden tocar espacios por dentro ("* texto *" no funciona)
+ * y los nombres con * _ ~ ` rompen el formato, así que se limpian antes.
+ */
+export function limpiarWA(texto) {
+  return String(texto ?? "")
+    .replace(/[*_~`]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function negritaWA(texto) {
+  const limpio = limpiarWA(texto);
+  return limpio ? `*${limpio}*` : "";
+}
+
+export function italicaWA(texto) {
+  const limpio = limpiarWA(texto);
+  return limpio ? `_${limpio}_` : "";
+}
+
+/** Solo dígitos: el número de WhatsApp debe ir sin espacios ni guiones. */
+function telefonoWA(telefono) {
+  return String(telefono ?? "").replace(/\D/g, "");
+}
+
+/** Bloque de cierre para WhatsApp, con el mismo texto que la boleta y la esquela. */
+export function bloqueCierreWA(configAula, moduloNombre) {
+  if (getTipoBase() !== "tic") return "";
+  const cierre = textoCierreDocumento(configAula, moduloNombre);
+  if (!cierre) return "";
+  const icono = cierre.vencido ? "🔒" : "⏳";
+  return `${icono} ${negritaWA(cierre.titulo)}\n${italicaWA(cierre.detalle)}\n`;
+}
+
 /**
  * Genera un texto en Markdown con el desglose detallado de pendientes para pegar en chat
  */
-function generarTextoReporteDetallado(estudiante, moduloNombre, porcentaje, detalles, esRetirado, esConvalidado, tipoAula) {
+/**
+ * Aviso de cierre del módulo. Solo para bases TIC y aulas de tipo módulo.
+ */
+function renderizarAvisoCierre(configAula, moduloNombre) {
+  if (getTipoBase() !== "tic") return "";
+  const cierre = estadoCierre(configAula, moduloNombre);
+  if (cierre.estado === "sin_fecha") return "";
+
+  if (cierre.estado === "vencido") {
+    return `
+      <div class="aviso-cierre aviso-vencido mb-4">
+        <i class="bi bi-lock-fill fs-4"></i>
+        <div>
+          <strong>Módulo cerrado</strong>
+          <div class="small">${cierre.texto}</div>
+        </div>
+      </div>`;
+  }
+
+  const partes = cierre.texto.match(/Quedan (.+?) para/);
+  return `
+    <div class="aviso-cierre aviso-abierto mb-4">
+      <div class="reloj-cierre"><i class="bi bi-alarm-fill"></i></div>
+      <div>
+        <strong>Cierre del módulo: ${formatearFechaHora(cierre.fecha)}</strong>
+        <div class="small">Quedan <b>${partes ? partes[1] : ""}</b></div>
+      </div>
+    </div>`;
+}
+
+export function generarTextoReporteDetallado(estudiante, moduloNombre, porcentaje, detalles, esRetirado, esConvalidado, tipoAula, configAula) {
   const bloquesTotal = 10;
   const bloquesLlenos = Math.round((porcentaje / 100) * bloquesTotal);
   const barraAscii = "█".repeat(bloquesLlenos) + "░".repeat(bloquesTotal - bloquesLlenos);
   const terminoAula = tipoAula === "curso" ? "CURSO" : "MÓDULO";
 
-  let msj = `📌 *REPORTE ACADÉMICO INDIVIDUAL*\n`;
-  msj += `👤 *Estudiante:* ${estudiante.nombre} ${estudiante.apellidos}\n`;
-  msj += `👥 *Grupo:* ${estudiante.grupoInfo?.etiquetaGrupo || 'Sin Grupo'}\n`;
-  msj += `📘 *${terminoAula}:* ${moduloNombre}\n`;
-  msj += `📊 *Avance General:* ${porcentaje}% [${barraAscii}]\n`;
-  msj += `-----------------------------------\n`;
+  let msj = `📌 ${negritaWA("REPORTE ACADÉMICO INDIVIDUAL")}\n`;
+  msj += `👤 ${negritaWA("Estudiante:")} ${limpiarWA(`${estudiante.nombre} ${estudiante.apellidos}`)}\n`;
+  msj += `👥 ${negritaWA("Grupo:")} ${limpiarWA(estudiante.grupoInfo?.etiquetaGrupo || "Sin Grupo")}\n`;
+  msj += `📘 ${negritaWA(terminoAula + ":")} ${limpiarWA(moduloNombre)}\n`;
+  msj += `📊 ${negritaWA("Avance General:")} ${porcentaje}% [${barraAscii}]\n`;
+  msj += bloqueCierreWA(configAula, moduloNombre);
+  msj += `━━━━━━━━━━━━━━━━━━━━━━\n`;
 
   if (esRetirado) {
     msj += `⚠️ *ESTADO:* Estudiante en condición de RETIRADO.\n`;
@@ -248,14 +390,14 @@ function generarTextoReporteDetallado(estudiante, moduloNombre, porcentaje, deta
     const pendientes = detalles.filter(d => d.estado !== "REALIZADO" && d.estado !== "APROBADO" && d.estado !== "CONVALIDADO");
     
     if (pendientes.length > 0) {
-      msj += `⚠️ *ACTIVIDADES PENDIENTES / POR ENTREGAR:* (${pendientes.length})\n`;
+      msj += `⚠️ ${negritaWA("ACTIVIDADES PENDIENTES / POR ENTREGAR:")} (${pendientes.length})\n`;
       pendientes.forEach(item => {
-        const notaStr = item.nota !== undefined && item.nota !== null && item.nota > 0 ? ` (Nota: ${item.nota})` : '';
-        msj += ` ❌ *${item.unidad}:* ${item.nombre}${notaStr} - [${item.estado}]\n`;
+        const notaStr = item.nota !== undefined && item.nota !== null && Number(item.nota) > 0 ? ` (Nota: ${item.nota})` : "";
+        msj += `❌ ${negritaWA(item.unidad + ":")} ${limpiarWA(item.nombre)}${notaStr} - [${item.estado}]\n`;
       });
-      msj += `\n📢 *INDICACIÓN:* _Por favor ingresar a la plataforma CAMPUS Virtual INATEC para realizar las actividades pendientes a la brevedad posible._\n`;
+      msj += `\n📢 ${negritaWA("INDICACIÓN:")} ${italicaWA("Por favor ingresar a la plataforma CAMPUS Virtual INATEC para realizar las actividades pendientes a la brevedad posible.")}\n`;
     } else {
-      msj += `🎉 *¡EXCELENTE TRABAJO!* Has completado exitosamente todas las actividades de este ${terminoAula.toLowerCase()}.\n`;
+      msj += `🎉 ${negritaWA("¡EXCELENTE TRABAJO!")} Has completado exitosamente todas las actividades de este ${terminoAula.toLowerCase()}.\n`;
     }
   }
   return msj;
@@ -268,7 +410,7 @@ function renderizarBotonWhatsAppDirecto(telefono, textoReporte) {
   if (telefono) {
     const msjUrl = encodeURIComponent(textoReporte);
     return `
-      <a href="https://wa.me/505${telefono}?text=${msjUrl}" target="_blank" class="btn btn-sm btn-outline-success">
+      <a href="https://wa.me/505${telefonoWA(telefono)}?text=${msjUrl}" target="_blank" class="btn btn-sm btn-outline-success">
         <i class="bi bi-whatsapp me-1"></i> WhatsApp Directo
       </a>
     `;
@@ -300,7 +442,7 @@ function capturarBoletaComoImagen(estudiante) {
 /**
  * Genera y copia la lista de estudiantes filtrados para WhatsApp
  */
-export function copiarListaWhatsAppGrupal(datosEstudiantes, moduloNombre, grupoSeleccionado, tipoEstado) {
+export function copiarListaWhatsAppGrupal(datosEstudiantes, moduloNombre, grupoSeleccionado, tipoEstado, opciones = {}) {
   let filtrados = datosEstudiantes;
 
   if (grupoSeleccionado && grupoSeleccionado !== "TODOS") {
@@ -320,83 +462,32 @@ export function copiarListaWhatsAppGrupal(datosEstudiantes, moduloNombre, grupoS
   }
 
   if (filtrados.length === 0) {
-    alert(`No hay estudiantes registrados con el filtro: ${tipoEstado}`);
+    toast(`No hay estudiantes en el filtro: ${tipoEstado.toLowerCase()}`, "aviso");
     return;
   }
 
-  const emojiHeader = tipoEstado === "COMPLETADOS" ? "🎉" : "⚠️";
-  const emojiBullet = tipoEstado === "COMPLETADOS" ? "✅" : "⚠️";
-  const titulo = tipoEstado === "COMPLETADOS" ? "ESTUDIANTES COMPLETADOS" : "ESTUDIANTES PENDIENTES";
+  const completados = tipoEstado === "COMPLETADOS";
+  const titulo = completados ? "ESTUDIANTES COMPLETADOS" : "ESTUDIANTES PENDIENTES";
 
-  let msj = `*${titulo} - MÓDULO/CURSO: ${moduloNombre}* ${emojiHeader}\n`;
-  msj += `👥 Grupo: ${grupoSeleccionado}\n`;
-  msj += `--------------------------------\n`;
+  let msj = `${completados ? "🎉" : "📋"} ${negritaWA(`${titulo} - ${moduloNombre}`)}\n`;
+  const etiquetaGrupo = !grupoSeleccionado || grupoSeleccionado === "TODOS" ? "Todos los grupos" : grupoSeleccionado;
+  msj += `👥 ${negritaWA("Grupo:")} ${limpiarWA(etiquetaGrupo)}\n`;
+  msj += bloqueCierreWA(opciones.configAula, moduloNombre);
+  msj += `━━━━━━━━━━━━━━━━━━━━━━\n`;
 
-  filtrados.forEach(est => {
-    msj += `${emojiBullet} ${est.nombre} ${est.apellidos}\n`;
+  filtrados.forEach((est, i) => {
+    const icono = completados ? "✅" : "⏳";
+    msj += `${icono} ${i + 1}. ${limpiarWA(`${est.nombre} ${est.apellidos}`)}\n`;
   });
 
-  msj += `--------------------------------\n`;
-  msj += tipoEstado === "PENDIENTES" 
-    ? `_Por favor ponerse al día lo antes posible en el CAMPUS Virtual._\n` 
-    : `_¡Felicidades por su excelente trabajo y cumplimiento!_\n`;
+  msj += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+  msj += completados
+    ? `${italicaWA("¡Felicidades por su excelente trabajo y cumplimiento!")}\n`
+    : `${italicaWA("Por favor ponerse al día lo antes posible en el CAMPUS Virtual.")}\n`;
 
-  navigator.clipboard.writeText(msj).then(() => {
-    alert(`¡Lista de ${tipoEstado} copiada al portapapeles!`);
-  });
+  navigator.clipboard
+    .writeText(msj)
+    .then(() => toast(`Lista de ${completados ? "completados" : "pendientes"} copiada (${filtrados.length})`, "exito"))
+    .catch(() => toast("No se pudo copiar. Revisa los permisos del navegador.", "error"));
 }
 
-/**
- * Despliega el modal con las credenciales de acceso al CAMPUS
- */
-export function mostrarModalCredenciales(estudiante) {
-  const modalEl = document.getElementById("modalCredenciales");
-  if (!modalEl) return;
-
-  const modalBody = modalEl.querySelector(".modal-body");
-  const datos = estudiante.datosContacto || {};
-  const tieneCredenciales = datos.usuario && datos.contrasena;
-
-  if (tieneCredenciales) {
-    modalBody.innerHTML = `
-      <div class="text-center mb-3">
-        <i class="bi bi-shield-lock text-primary display-4"></i>
-        <h5 class="fw-bold mt-2">${estudiante.nombre} ${estudiante.apellidos}</h5>
-        <span class="badge bg-light text-dark border">${estudiante.correo || 'Sin Correo'}</span>
-      </div>
-      <div class="card bg-light border-0 p-3 mb-3">
-        <div class="mb-2">
-          <small class="text-muted d-block fw-bold">USUARIO CAMPUS:</small>
-          <div class="input-group">
-            <input type="text" readonly class="form-control form-control-sm bg-white" value="${datos.usuario}">
-            <button class="btn btn-sm btn-outline-primary" onclick="navigator.clipboard.writeText('${datos.usuario}')">
-              <i class="bi bi-clipboard"></i>
-            </button>
-          </div>
-        </div>
-        <div>
-          <small class="text-muted d-block fw-bold">CONTRASEÑA:</small>
-          <div class="input-group">
-            <input type="text" readonly class="form-control form-control-sm bg-white" value="${datos.contrasena}">
-            <button class="btn btn-sm btn-outline-primary" onclick="navigator.clipboard.writeText('${datos.contrasena}')">
-              <i class="bi bi-clipboard"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-    `;
-  } else {
-    modalBody.innerHTML = `
-      <div class="text-center py-3">
-        <i class="bi bi-exclamation-triangle text-warning display-4"></i>
-        <h6 class="fw-bold mt-3 text-dark">Credenciales No Disponibles</h6>
-        <p class="text-muted small mb-0 px-3">
-          ℹ️ Las credenciales de acceso al CAMPUS no están disponibles en la <strong>Base de Datos Provisional</strong> cargada.
-        </p>
-      </div>
-    `;
-  }
-
-  const bsModal = new bootstrap.Modal(modalEl);
-  bsModal.show();
-}

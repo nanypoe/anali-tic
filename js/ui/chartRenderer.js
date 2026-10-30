@@ -1,483 +1,413 @@
 /* js/ui/chartRenderer.js */
 
-/**
- * Instancia global de Chart.js para re-renderizado sin fugas de memoria.
- */
+import { resolverCarrera } from "../core/diccionarios.js";
+import { getTipoBase } from "../core/store.js";
+import { estadoCierre, formatearFechaHora } from "../core/fechas.js";
+import {
+  COLOR,
+  crearLibro,
+  escribirEncabezadoReporte,
+  estilizarEncabezadoTabla,
+  estilizarFilasDatos,
+  configurarImpresion,
+  descargarLibro,
+  fechaArchivo,
+} from "./excelEstilos.js";
+
+/** Instancia global de Chart.js para re-renderizado sin fugas de memoria. */
 let miChart = null;
 
-/**
- * Diccionario de equivalencias para formatear nombres de carrera a texto completo y legible.
- */
+const COLORES_DONA = {
+  completados: "#10B981",
+  enProgreso: "#FFB703",
+  sinIniciar: "#FF6B5B",
+  retirados: "#94A3B8",
+};
+
 const MAPA_CARRERAS = {
   contabilidad: "CONTABILIDAD",
   administracion: "ADMINISTRACION",
-  administración: "ADMINISTRACION",
   computacion: "COMPUTACION",
-  computación: "COMPUTACION",
   aduana: "GESTION ADUANERA",
   pasteleria: "PASTELERIA Y PANADERIA",
-  pastelería: "PASTELERIA Y PANADERIA",
   banca: "BANCA Y FINANZAS",
   ingles: "INGLES",
-  inglés: "INGLES",
   programacion: "PROGRAMACION",
-  programación: "PROGRAMACION",
   zootecnia: "ZOOTECNIA",
   agronomia: "AGRONOMIA",
-  agronomía: "AGRONOMIA",
 };
 
-/**
- * Formatea el nombre de la carrera según el mapa o en mayúsculas por defecto.
- */
-function formatearNombreCarrera(carreraRaw = "") {
-  if (!carreraRaw || carreraRaw.trim() === "") return "CARRERA GENERAL";
-  const limpia = carreraRaw
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim();
-
-  return MAPA_CARRERAS[limpia] || carreraRaw.toUpperCase().trim();
+function normalizar(texto) {
+  return String(texto || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 }
 
-/**
- * Renderiza el gráfico de dona con métricas visibles.
- */
+function formatearNombreCarrera(carreraRaw = "") {
+  if (!carreraRaw || carreraRaw.trim() === "") return "CARRERA GENERAL";
+  const completa = resolverCarrera(carreraRaw);
+  if (completa) return completa.toUpperCase();
+  return MAPA_CARRERAS[normalizar(carreraRaw)] || carreraRaw.toUpperCase().trim();
+}
+
+/** Clasifica cada estudiante para el módulo indicado. */
+function clasificar(est, moduloNombre) {
+  if (est.estadoEstudiante === "retirado") return "retirado";
+  const mod = est.modulos ? est.modulos[moduloNombre] : null;
+  if (!mod) return "sinIniciar";
+  if (mod.completado || mod.estaConvalidado || (mod.porcentajeAvance || 0) === 100) return "completado";
+  if ((mod.porcentajeAvance || 0) > 0) return "enProgreso";
+  return "sinIniciar";
+}
+
+/** Totales generales y por grupo. */
+export function calcularMetricas(datosEstudiantes, moduloNombre) {
+  const total = { total: 0, completados: 0, enProgreso: 0, sinIniciar: 0, retirados: 0 };
+  const grupos = new Map();
+
+  datosEstudiantes.forEach((est) => {
+    const clave = est.grupoInfo?.etiquetaGrupo || "SIN GRUPO";
+    if (!grupos.has(clave)) {
+      grupos.set(clave, {
+        etiqueta: clave,
+        codigo: est.grupoInfo?.grupo || est.grupoInfo?.codigo || "G-00",
+        carrera: formatearNombreCarrera(est.grupoInfo?.carrera || ""),
+        total: 0, completados: 0, enProgreso: 0, sinIniciar: 0, retirados: 0,
+      });
+    }
+    const g = grupos.get(clave);
+    const categoria = clasificar(est, moduloNombre);
+    total.total++;
+    g.total++;
+    if (categoria === "completado") { total.completados++; g.completados++; }
+    else if (categoria === "enProgreso") { total.enProgreso++; g.enProgreso++; }
+    else if (categoria === "retirado") { total.retirados++; g.retirados++; }
+    else { total.sinIniciar++; g.sinIniciar++; }
+  });
+
+  const listaGrupos = Array.from(grupos.values()).sort((a, b) =>
+    a.codigo.localeCompare(b.codigo, undefined, { numeric: true, sensitivity: "base" }) ||
+    a.carrera.localeCompare(b.carrera, "es", { sensitivity: "base" }),
+  );
+  return { total, grupos: listaGrupos };
+}
+
+const pct = (parte, todo) => (todo > 0 ? ((parte / todo) * 100).toFixed(1) : "0.0");
+
+/** Tarjetas de indicadores con números animados. */
+function renderizarKpis(m, moduloNombre, configAula) {
+  const contenedor = document.getElementById("metricas-kpis");
+  if (!contenedor) return;
+  const evaluados = m.total.total - m.total.retirados;
+
+  const tarjetas = [
+    { icono: "bi-people-fill", color: "primario", titulo: "Estudiantes", valor: m.total.total, sub: `${m.total.retirados} retirado(s) fuera del cálculo` },
+    { icono: "bi-check2-circle", color: "verde", titulo: "Completados", valor: m.total.completados, sub: `${pct(m.total.completados, evaluados)}% de los activos (incluye convalidados)` },
+    { icono: "bi-hourglass-split", color: "ambar", titulo: "En progreso", valor: m.total.enProgreso, sub: "Han entregado algo, aún no completan" },
+    { icono: "bi-exclamation-octagon-fill", color: "coral", titulo: "Sin iniciar", valor: m.total.sinIniciar, sub: `${pct(m.total.sinIniciar, evaluados)}% de los activos` },
+  ];
+
+  const cierre = getTipoBase() === "tic" ? estadoCierre(configAula, moduloNombre) : null;
+  const tarjetaCierre = cierre && cierre.estado !== "sin_fecha"
+    ? `<div class="kpi-card kpi-cierre kpi-${cierre.estado}">
+         <div class="kpi-icono"><i class="bi ${cierre.estado === "vencido" ? "bi-lock-fill" : "bi-alarm-fill"}"></i></div>
+         <div class="kpi-texto">
+           <div class="kpi-titulo">Cierre del módulo</div>
+           <div class="kpi-sub">${cierre.estado === "vencido" ? `Cerró el ${formatearFechaHora(cierre.fecha)}` : cierre.textoCorto}</div>
+         </div>
+       </div>`
+    : "";
+
+  contenedor.innerHTML = tarjetas
+    .map((t, i) => `
+      <div class="kpi-card kpi-${t.color}" style="animation-delay:${i * 80}ms">
+        <div class="kpi-icono"><i class="bi ${t.icono}"></i></div>
+        <div class="kpi-texto">
+          <div class="kpi-titulo">${t.titulo}</div>
+          <div class="kpi-valor" data-valor="${t.valor}">0</div>
+          <div class="kpi-sub">${t.sub}</div>
+        </div>
+      </div>`)
+    .join("") + tarjetaCierre;
+
+  contenedor.querySelectorAll(".kpi-valor").forEach((el) => animarNumero(el, Number(el.dataset.valor)));
+}
+
+function animarNumero(el, destino, duracion = 700) {
+  const inicio = performance.now();
+  const paso = (ahora) => {
+    const t = Math.min(1, (ahora - inicio) / duracion);
+    el.textContent = Math.round(destino * (1 - Math.pow(1 - t, 3)));
+    if (t < 1) requestAnimationFrame(paso);
+  };
+  requestAnimationFrame(paso);
+}
+
+/** Gráfico de dona con leyenda explicativa. */
 export function renderizarGraficoDona(datosEstudiantes = [], moduloNombre = "") {
   const canvas = document.getElementById("chartEstadoEstudiantes");
-  if (!canvas) return;
+  if (!canvas || typeof Chart === "undefined") return;
 
   if (miChart) {
     miChart.destroy();
     miChart = null;
   }
 
-  if (typeof Chart === "undefined") {
-    console.error("Chart.js no está disponible.");
-    return;
-  }
+  const m = calcularMetricas(datosEstudiantes, moduloNombre).total;
+  const valores = [m.completados, m.enProgreso, m.sinIniciar, m.retirados];
+  const etiquetas = ["Completados", "En progreso", "Sin iniciar", "Retirados"];
+  const colores = [COLORES_DONA.completados, COLORES_DONA.enProgreso, COLORES_DONA.sinIniciar, COLORES_DONA.retirados];
+  const totalEvaluados = m.total;
 
-  let completados = 0;
-  let enProgreso = 0;
-  let sinIniciar = 0;
-  let retirados = 0;
-
-  datosEstudiantes.forEach((est) => {
-    if (est.estadoEstudiante === "retirado") {
-      retirados++;
-      return;
-    }
-
-    const mod = est.modulos ? est.modulos[moduloNombre] : null;
-    if (!mod) {
-      sinIniciar++;
-      return;
-    }
-
-    const pct = mod.porcentajeAvance || 0;
-    const convalidado = mod.estaConvalidado || false;
-    const completado = mod.completado || false;
-
-    if (completado || convalidado || pct === 100) {
-      completados++;
-    } else if (pct > 0) {
-      enProgreso++;
-    } else {
-      sinIniciar++;
-    }
-  });
-
-  const totalEvaluados = completados + enProgreso + sinIniciar + retirados;
-
-  const ctx = canvas.getContext("2d");
-  miChart = new Chart(ctx, {
+  miChart = new Chart(canvas.getContext("2d"), {
     type: "doughnut",
     data: {
-      labels: ["Completados", "En Progreso", "Sin Iniciar", "Retirados"],
-      datasets: [
-        {
-          data: [completados, enProgreso, sinIniciar, retirados],
-          backgroundColor: ["#198754", "#ffc107", "#fd7e14", "#6c757d"],
-          hoverBackgroundColor: ["#157347", "#ffcd39", "#e06c10", "#5c636a"],
-          borderColor: ["#ffffff", "#ffffff", "#ffffff", "#ffffff"],
-          borderWidth: 2,
-          hoverOffset: 8,
-        },
-      ],
+      labels: etiquetas,
+      datasets: [{ data: valores, backgroundColor: colores, borderColor: "#ffffff", borderWidth: 3, hoverOffset: 10 }],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      cutout: "62%",
+      animation: { animateRotate: true, duration: 900 },
       plugins: {
         legend: {
           position: "bottom",
           labels: {
-            font: { size: 12, family: 'system-ui, -apple-system, "Segoe UI", Roboto' },
-            padding: 16,
+            font: { size: 12, family: 'system-ui, -apple-system, "Segoe UI", Roboto', weight: "600" },
+            padding: 14,
             usePointStyle: true,
-            generateLabels: (chart) => {
-              const data = chart.data;
-              if (data.labels.length && data.datasets.length) {
-                return data.labels.map((label, i) => {
-                  const val = data.datasets[0].data[i];
-                  const pct = totalEvaluados > 0 ? ((val / totalEvaluados) * 100).toFixed(1) : "0.0";
-                  return {
-                    text: `${label}: ${val} (${pct}%)`,
-                    fillStyle: data.datasets[0].backgroundColor[i],
-                    strokeStyle: "#ffffff",
-                    lineWidth: 1,
-                    hidden: isNaN(data.datasets[0].data[i]) || chart.getDatasetMeta(0).data[i].hidden,
-                    index: i,
-                  };
-                });
-              }
-              return [];
-            },
+            pointStyle: "circle",
+            generateLabels: (chart) =>
+              etiquetas.map((label, i) => ({
+                text: `${label}: ${valores[i]} (${pct(valores[i], totalEvaluados)}%)`,
+                fillStyle: colores[i],
+                strokeStyle: "#ffffff",
+                hidden: false,
+                index: i,
+              })),
           },
         },
         tooltip: {
           callbacks: {
-            label: function (context) {
-              const valor = context.raw || 0;
-              const porcentaje = totalEvaluados > 0 
-                ? ((valor / totalEvaluados) * 100).toFixed(1) 
-                : "0.0";
-              return ` ${context.label}: ${valor} estudiante(s) (${porcentaje}%)`;
-            },
+            label: (ctx) => ` ${ctx.label}: ${ctx.raw} estudiante(s) (${pct(ctx.raw, totalEvaluados)}%)`,
           },
         },
       },
     },
   });
 
-  // Configurar botón de descarga de imagen
-  const btnDescargarGrafico = document.getElementById("btn-descargar-grafico-png");
-  if (btnDescargarGrafico) {
-    btnDescargarGrafico.onclick = () => descargarGraficoComoImagen(moduloNombre, totalEvaluados, [completados, enProgreso, sinIniciar, retirados]);
-  }
+  const btn = document.getElementById("btn-descargar-grafico-png");
+  if (btn) btn.onclick = () => descargarGraficoComoImagen(moduloNombre, totalEvaluados);
 }
 
-/**
- * Exporta el gráfico en formato PNG con marcas de texto numéricas.
- */
+/** PNG del gráfico con encabezado de marca. */
 function descargarGraficoComoImagen(moduloNombre, total) {
   const canvas = document.getElementById("chartEstadoEstudiantes");
   if (!canvas) return;
 
-  const tempCanvas = document.createElement("canvas");
-  const tempCtx = tempCanvas.getContext("2d");
+  const ancho = canvas.width + 80;
+  const alto = canvas.height + 150;
+  const temp = document.createElement("canvas");
+  temp.width = ancho;
+  temp.height = alto;
+  const ctx = temp.getContext("2d");
 
-  tempCanvas.width = canvas.width + 80;
-  tempCanvas.height = canvas.height + 140;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, ancho, alto);
+  ctx.fillStyle = "#5B3DF5";
+  ctx.fillRect(0, 0, ancho, 62);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = "bold 18px system-ui, sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText("ANALI-TIC · DISTRIBUCIÓN DEL AULA", 24, 38);
 
-  // Fondo blanco
-  tempCtx.fillStyle = "#ffffff";
-  tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+  ctx.fillStyle = "#FFB703";
+  const textoModulo = `MÓDULO / CURSO: ${moduloNombre.toUpperCase()}`;
+  ctx.font = "bold 15px system-ui, sans-serif";
+  const anchoTexto = ctx.measureText(textoModulo).width;
+  ctx.fillRect(24, 76, anchoTexto + 24, 30);
+  ctx.fillStyle = "#1E1B3A";
+  ctx.fillText(textoModulo, 36, 97);
 
-  // Encabezado
-  tempCtx.fillStyle = "#0d6efd";
-  tempCtx.font = "bold 18px system-ui, sans-serif";
-  tempCtx.textAlign = "center";
-  tempCtx.fillText(`ANÁLISIS GENERAL DE AULA - MÓDULO/CURSO: ${moduloNombre.toUpperCase()}`, tempCanvas.width / 2, 35);
+  ctx.fillStyle = "#6B7280";
+  ctx.font = "13px system-ui, sans-serif";
+  ctx.fillText(`Total evaluados: ${total} estudiantes (retirados fuera del porcentaje)`, 24, 128);
 
-  tempCtx.fillStyle = "#6c757d";
-  tempCtx.font = "13px system-ui, sans-serif";
-  tempCtx.fillText(`Total Evaluados: ${total} estudiantes`, tempCanvas.width / 2, 58);
+  ctx.drawImage(canvas, 40, 140);
 
-  // Dibujar gráfico
-  tempCtx.drawImage(canvas, 40, 70);
-
-  // Descargar PNG
-  const link = document.createElement("a");
-  const hoy = new Date();
-  const fechaStr = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(hoy.getDate()).padStart(2, "0")}`;
-  link.download = `Grafico_Distribucion_${moduloNombre}_${fechaStr}.png`;
-  link.href = tempCanvas.toDataURL("image/png");
-  link.click();
+  const enlace = document.createElement("a");
+  enlace.download = `Distribucion_${moduloNombre.replace(/[^\wÁÉÍÓÚÑáéíóúñ-]+/g, "_")}_${fechaArchivo()}.png`;
+  enlace.href = temp.toDataURL("image/png");
+  enlace.click();
 }
 
-/**
- * Renderiza la matriz comparativa por grupos agrupados y ordenados.
- */
+/** Tabla por grupo con barras de progreso. */
 export function renderizarTablaComparativaGrupos(datosEstudiantes = [], moduloNombre = "") {
   const container = document.getElementById("tabla-resumen-grupos-container");
   if (!container) return;
 
-  const gruposMap = {};
-
-  datosEstudiantes.forEach((est) => {
-    const etiquetaGrupo = est.grupoInfo?.etiquetaGrupo || "SIN GRUPO";
-    const carreraRaw = est.grupoInfo?.carrera || "Carrera General";
-    const grupoCod = est.grupoInfo?.grupo || est.grupoInfo?.codigo || "G-00";
-
-    if (!gruposMap[etiquetaGrupo]) {
-      gruposMap[etiquetaGrupo] = {
-        carreraFormateada: formatearNombreCarrera(carreraRaw),
-        grupoCodigo: grupoCod,
-        etiqueta: etiquetaGrupo,
-        total: 0,
-        completados: 0,
-        pendientes: 0,
-        retirados: 0,
-      };
-    }
-
-    const g = gruposMap[etiquetaGrupo];
-    g.total++;
-
-    if (est.estadoEstudiante === "retirado") {
-      g.retirados++;
-      return;
-    }
-
-    const mod = est.modulos ? est.modulos[moduloNombre] : null;
-    const pct = mod?.porcentajeAvance || 0;
-    const convalidado = mod?.estaConvalidado || false;
-    const completado = mod?.completado || false;
-
-    if (completado || convalidado || pct === 100) {
-      g.completados++;
-    } else {
-      g.pendientes++;
-    }
-  });
-
-  // Ordenar numéricamente por número de grupo (G01, G02, G03...)
-  const listaGrupos = Object.values(gruposMap).sort((a, b) => {
-    return a.grupoCodigo.localeCompare(b.grupoCodigo, undefined, { numeric: true, sensitivity: "base" }) ||
-           a.carreraFormateada.localeCompare(b.carreraFormateada, undefined, { sensitivity: "base" });
-  });
-
-  if (listaGrupos.length === 0) {
+  const { total, grupos } = calcularMetricas(datosEstudiantes, moduloNombre);
+  if (grupos.length === 0) {
     container.innerHTML = `<div class="alert alert-info text-center py-3">No hay datos de grupos disponibles.</div>`;
     return;
   }
 
-  let sumTotal = 0;
-  let sumCompletados = 0;
-  let sumPendientes = 0;
-  let sumRetirados = 0;
+  const barra = (valor, color) => `
+    <div class="barra-pct" title="${valor}%">
+      <div class="barra-pct-fill" style="width:${valor}%;background:${color}"></div>
+      <span>${valor}%</span>
+    </div>`;
 
-  const filasHTML = listaGrupos
-    .map((g) => {
-      sumTotal += g.total;
-      sumCompletados += g.completados;
-      sumPendientes += g.pendientes;
-      sumRetirados += g.retirados;
+  const filas = grupos.map((g) => {
+    const evaluados = g.total - g.retirados;
+    const comp = g.completados;
+    const pend = evaluados - comp;
+    const pComp = pct(comp, evaluados);
+    const pPend = pct(pend, evaluados);
+    return `
+      <tr>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            <span class="chip-grupo">${g.codigo}</span>
+            <span class="fw-semibold">${g.carrera}</span>
+          </div>
+        </td>
+        <td class="text-center fw-bold">${g.total}</td>
+        <td class="text-center fw-bold text-success">${comp}</td>
+        <td style="min-width: 150px">${barra(pComp, COLORES_DONA.completados)}</td>
+        <td class="text-center fw-bold" style="color:#B45309">${pend}</td>
+        <td style="min-width: 150px">${barra(pPend, COLORES_DONA.enProgreso)}</td>
+        <td class="text-center text-muted">${g.retirados}</td>
+      </tr>`;
+  }).join("");
 
-      const evalSinRetirados = g.completados + g.pendientes;
-      const pctComp = evalSinRetirados > 0 ? ((g.completados / evalSinRetirados) * 100).toFixed(1) : "0.0";
-      const pctPend = evalSinRetirados > 0 ? ((g.pendientes / evalSinRetirados) * 100).toFixed(1) : "0.0";
-
-      return `
-        <tr>
-          <td>
-            <div class="d-flex align-items-center gap-2">
-              <span class="badge bg-primary fs-6 px-2 py-1 shadow-sm">${g.grupoCodigo}</span>
-              <span class="fw-bold text-dark fs-6">${g.carreraFormateada}</span>
-            </div>
-          </td>
-          <td class="text-center fw-bold fs-6">${g.total}</td>
-          <td class="text-center text-success fw-bold fs-6">${g.completados}</td>
-          <td class="text-center" style="min-width: 130px;">
-            <div class="progress" style="height: 20px;">
-              <div class="progress-bar bg-success fw-bold fs-7" role="progressbar" style="width: ${pctComp}%;" aria-valuenow="${pctComp}" aria-valuemin="0" aria-valuemax="100">${pctComp}%</div>
-            </div>
-          </td>
-          <td class="text-center text-warning fw-bold fs-6">${g.pendientes}</td>
-          <td class="text-center" style="min-width: 130px;">
-            <div class="progress" style="height: 20px;">
-              <div class="progress-bar bg-warning text-dark fw-bold fs-7" role="progressbar" style="width: ${pctPend}%;" aria-valuenow="${pctPend}" aria-valuemin="0" aria-valuemax="100">${pctPend}%</div>
-            </div>
-          </td>
-        </tr>
-      `;
-    })
-    .join("");
-
-  const evalTotalAula = sumCompletados + sumPendientes;
-  const pctCompTotal = evalTotalAula > 0 ? ((sumCompletados / evalTotalAula) * 100).toFixed(1) : "0.0";
-  const pctPendTotal = evalTotalAula > 0 ? ((sumPendientes / evalTotalAula) * 100).toFixed(1) : "0.0";
-
+  const evaluadosTotal = total.total - total.retirados;
   container.innerHTML = `
-    <table class="table table-hover align-middle border mb-0">
-      <thead class="table-light">
+    <table class="table table-hover align-middle mb-0 tabla-grupos">
+      <thead>
         <tr>
-          <th>Grupo y Carrera</th>
+          <th>Grupo y carrera</th>
           <th class="text-center">Total</th>
-          <th class="text-center">Completados 🟢</th>
-          <th class="text-center">% Completado</th>
-          <th class="text-center">Pendientes ⚠️</th>
-          <th class="text-center">% Pendiente</th>
+          <th class="text-center">Completados</th>
+          <th>% completado</th>
+          <th class="text-center">Pendientes</th>
+          <th>% pendiente</th>
+          <th class="text-center">Retirados</th>
         </tr>
       </thead>
-      <tbody>
-        ${filasHTML}
-      </tbody>
-      <tfoot class="table-secondary fw-bold">
+      <tbody>${filas}</tbody>
+      <tfoot>
         <tr>
-          <td>TOTAL ACUMULADO AULA</td>
-          <td class="text-center">${sumTotal}</td>
-          <td class="text-center text-success">${sumCompletados}</td>
-          <td class="text-center">${pctCompTotal}%</td>
-          <td class="text-center text-dark">${sumPendientes}</td>
-          <td class="text-center">${pctPendTotal}%</td>
+          <td class="fw-bold">TOTAL DEL AULA</td>
+          <td class="text-center fw-bold">${total.total}</td>
+          <td class="text-center fw-bold text-success">${total.completados}</td>
+          <td>${barra(pct(total.completados, evaluadosTotal), COLORES_DONA.completados)}</td>
+          <td class="text-center fw-bold" style="color:#B45309">${evaluadosTotal - total.completados}</td>
+          <td>${barra(pct(evaluadosTotal - total.completados, evaluadosTotal), COLORES_DONA.enProgreso)}</td>
+          <td class="text-center text-muted">${total.retirados}</td>
         </tr>
       </tfoot>
     </table>
-  `;
+    <p class="small text-muted mt-2 mb-0">
+      <i class="bi bi-info-circle me-1"></i>Los porcentajes se calculan sobre estudiantes activos. Los convalidados cuentan como completados y los retirados no entran al cálculo.
+    </p>`;
 }
 
-/**
- * Exporta la tabla resumen a Excel (.xlsx) con nombres ordenados y formateados.
- */
-export function exportarResumenGruposExcel(datosEstudiantes = [], moduloNombre = "") {
-  if (typeof XLSX === "undefined") {
-    alert("Error: La librería SheetJS no está disponible.");
+/** Excel del resumen por grupo con el mismo formato institucional. */
+export async function exportarResumenGruposExcel(datosEstudiantes = [], moduloNombre = "", configAula = null) {
+  if (typeof ExcelJS === "undefined") {
+    alert("Error: La librería ExcelJS no está disponible.");
     return;
   }
 
-  const gruposMap = {};
+  const { total, grupos } = calcularMetricas(datosEstudiantes, moduloNombre);
+  const libro = crearLibro();
+  const ws = libro.addWorksheet("Resumen por grupos", { properties: { tabColor: { argb: COLOR.acento } } });
 
-  datosEstudiantes.forEach((est) => {
-    const etiquetaGrupo = est.grupoInfo?.etiquetaGrupo || "SIN GRUPO";
-    const carreraRaw = est.grupoInfo?.carrera || "Carrera General";
-    const grupoCod = est.grupoInfo?.grupo || est.grupoInfo?.codigo || "G-00";
-
-    if (!gruposMap[etiquetaGrupo]) {
-      gruposMap[etiquetaGrupo] = {
-        carreraFormateada: formatearNombreCarrera(carreraRaw),
-        grupoCodigo: grupoCod,
-        total: 0,
-        completados: 0,
-        pendientes: 0,
-        retirados: 0,
-      };
-    }
-
-    const g = gruposMap[etiquetaGrupo];
-    g.total++;
-
-    if (est.estadoEstudiante === "retirado") {
-      g.retirados++;
-      return;
-    }
-
-    const mod = est.modulos ? est.modulos[moduloNombre] : null;
-    const pct = mod?.porcentajeAvance || 0;
-    const convalidado = mod?.estaConvalidado || false;
-    const completado = mod?.completado || false;
-
-    if (completado || convalidado || pct === 100) {
-      g.completados++;
-    } else {
-      g.pendientes++;
-    }
+  const cabeceras = ["Código grupo", "Carrera", "Total", "Completados", "% completados", "Pendientes", "% pendientes", "Retirados"];
+  const cierre = getTipoBase() === "tic" ? estadoCierre(configAula, moduloNombre) : null;
+  const filaCab = escribirEncabezadoReporte(ws, {
+    titulo: "ANALI-TIC · RESUMEN POR GRUPOS",
+    modulo: moduloNombre,
+    contexto: `Generado: ${formatearFechaHora(new Date())}   ·   Porcentajes sobre estudiantes activos`,
+    cierre: cierre && cierre.estado !== "sin_fecha"
+      ? { estado: cierre.estado, texto: cierre.estado === "vencido" ? `⚠ ${cierre.texto}` : `⏳ ${cierre.texto}` }
+      : null,
+    columnas: cabeceras.length,
   });
+  ws.columns = [14, 40, 10, 14, 15, 13, 15, 12].map((w) => ({ width: w }));
+  estilizarEncabezadoTabla(ws, filaCab, cabeceras);
 
-  const listaGrupos = Object.values(gruposMap).sort((a, b) => {
-    return a.grupoCodigo.localeCompare(b.grupoCodigo, undefined, { numeric: true, sensitivity: "base" }) ||
-           a.carreraFormateada.localeCompare(b.carreraFormateada, undefined, { sensitivity: "base" });
+  const filasDatos = grupos.map((g) => {
+    const evaluados = g.total - g.retirados;
+    const pComp = evaluados > 0 ? g.completados / evaluados : 0;
+    const pPend = evaluados > 0 ? (evaluados - g.completados) / evaluados : 0;
+    return [g.codigo, g.carrera, g.total, g.completados, pComp, evaluados - g.completados, pPend, g.retirados];
   });
+  const evaluadosTotal = total.total - total.retirados;
+  filasDatos.forEach((f) => ws.addRow(f));
+  const filaTotal = ws.addRow([
+    "TOTAL",
+    "Total del aula",
+    total.total,
+    total.completados,
+    evaluadosTotal > 0 ? total.completados / evaluadosTotal : 0,
+    evaluadosTotal - total.completados,
+    evaluadosTotal > 0 ? (evaluadosTotal - total.completados) / evaluadosTotal : 0,
+    total.retirados,
+  ]);
 
-  let sumTotal = 0;
-  let sumCompletados = 0;
-  let sumPendientes = 0;
-  let sumRetirados = 0;
-
-  const filasExcel = listaGrupos.map((g) => {
-    sumTotal += g.total;
-    sumCompletados += g.completados;
-    sumPendientes += g.pendientes;
-    sumRetirados += g.retirados;
-
-    const evalSinRetirados = g.completados + g.pendientes;
-    const pctComp = evalSinRetirados > 0 ? ((g.completados / evalSinRetirados) * 100).toFixed(1) : "0.0";
-    const pctPend = evalSinRetirados > 0 ? ((g.pendientes / evalSinRetirados) * 100).toFixed(1) : "0.0";
-
-    return {
-      "Código Grupo": g.grupoCodigo,
-      Carrera: g.carreraFormateada,
-      "Total Estudiantes": g.total,
-      Completados: g.completados,
-      "% Completados": `${pctComp}%`,
-      "Pendientes / En Riesgo": g.pendientes,
-      "% Pendientes": `${pctPend}%`,
-      Retirados: g.retirados,
-    };
+  const ultima = filaCab + filasDatos.length;
+  estilizarFilasDatos(ws, filaCab + 1, ultima + 1, cabeceras.length);
+  [5, 7].forEach((col) => {
+    for (let r = filaCab + 1; r <= ultima + 1; r++) ws.getRow(r).getCell(col).numFmt = "0.0%";
   });
-
-  const evalTotalAula = sumCompletados + sumPendientes;
-  const pctCompTotal = evalTotalAula > 0 ? ((sumCompletados / evalTotalAula) * 100).toFixed(1) : "0.0";
-  const pctPendTotal = evalTotalAula > 0 ? ((sumPendientes / evalTotalAula) * 100).toFixed(1) : "0.0";
-
-  filasExcel.push({
-    "Código Grupo": "TOTAL",
-    Carrera: "TOTAL ACUMULADO AULA",
-    "Total Estudiantes": sumTotal,
-    Completados: sumCompletados,
-    "% Completados": `${pctCompTotal}%`,
-    "Pendientes / En Riesgo": sumPendientes,
-    "% Pendientes": `${pctPendTotal}%`,
-    Retirados: sumRetirados,
+  filaTotal.eachCell((c) => {
+    c.font = { bold: true, color: { argb: COLOR.primarioOscuro } };
+    c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR.primarioClaro } };
   });
+  ws.getRow(filaCab + 1).getCell(4).font = { bold: true, color: { argb: "FF065F46" } };
+  configurarImpresion(ws, filaCab);
 
-  const worksheet = XLSX.utils.json_to_sheet(filasExcel);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Resumen por Grupos");
-
-  const hoy = new Date();
-  const fechaStr = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(hoy.getDate()).padStart(2, "0")}`;
   const modClean = moduloNombre.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_\-]/g, "");
-  const nombreArchivo = `AnaliTIC_Resumen_Grupos_${modClean}_${fechaStr}.xlsx`;
-
-  XLSX.writeFile(workbook, nombreArchivo);
+  await descargarLibro(libro, `AnaliTIC_Resumen_Grupos_${modClean}_${fechaArchivo()}.xlsx`);
 }
 
-/**
- * Función principal que despliega el modal e integra el selector de módulo interno.
- */
+/** Modal "Análisis del aula": indicadores, distribución y tabla por grupo. */
 export function mostrarModalMetricasAula(datosEstudiantes, moduloNombreActual, configAula) {
   const modalEl = document.getElementById("modalMetricasAula");
   if (!modalEl) return;
 
-  let moduloSeleccionadoModal = moduloNombreActual;
+  let moduloSeleccionado = moduloNombreActual;
 
-  // Popular el Selector de Módulo dentro del Modal
-  const selectorModuloModal = document.getElementById("modal-modulo-selector");
-  if (selectorModuloModal && configAula && configAula.modulos) {
-    const listaModulos = Object.keys(configAula.modulos);
-    selectorModuloModal.innerHTML = listaModulos
-      .map((mod) => `<option value="${mod}" ${mod === moduloSeleccionadoModal ? "selected" : ""}>Módulo/Curso: ${mod}</option>`)
+  const selector = document.getElementById("modal-modulo-selector");
+  if (selector && configAula?.modulos) {
+    selector.innerHTML = Object.keys(configAula.modulos)
+      .map((mod) => `<option value="${mod}" ${mod === moduloSeleccionado ? "selected" : ""}>${mod}</option>`)
       .join("");
-
-    selectorModuloModal.onchange = (e) => {
-      moduloSeleccionadoModal = e.target.value;
-      renderizarGraficoDona(datosEstudiantes, moduloSeleccionadoModal);
-      renderizarTablaComparativaGrupos(datosEstudiantes, moduloSeleccionadoModal);
+    selector.onchange = (e) => {
+      moduloSeleccionado = e.target.value;
+      renderizarTodo();
     };
   }
 
-  // Renderizados iniciales
-  renderizarGraficoDona(datosEstudiantes, moduloSeleccionadoModal);
-  renderizarTablaComparativaGrupos(datosEstudiantes, moduloSeleccionadoModal);
+  const renderizarTodo = () => {
+    renderizarKpis(calcularMetricas(datosEstudiantes, moduloSeleccionado), moduloSeleccionado, configAula);
+    renderizarGraficoDona(datosEstudiantes, moduloSeleccionado);
+    renderizarTablaComparativaGrupos(datosEstudiantes, moduloSeleccionado);
+    const tituloModulo = document.getElementById("metricas-modulo");
+    if (tituloModulo) tituloModulo.textContent = moduloSeleccionado;
+  };
 
-  // Vincular botón Excel
+  renderizarTodo();
+
   const btnExcel = document.getElementById("btn-exportar-resumen-excel");
-  if (btnExcel) {
-    btnExcel.onclick = () => exportarResumenGruposExcel(datosEstudiantes, moduloSeleccionadoModal);
-  }
+  if (btnExcel) btnExcel.onclick = () => exportarResumenGruposExcel(datosEstudiantes, moduloSeleccionado, configAula);
 
-  // Desplegar Modal
-  const bsModal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-  bsModal.show();
-
-  // Redimensionar Canvas al cambiar a pestaña "General"
   const tabGeneral = document.getElementById("pills-general-tab");
-  if (tabGeneral) {
-    tabGeneral.addEventListener("shown.bs.tab", () => {
-      if (miChart) miChart.resize();
-    });
+  if (tabGeneral && !tabGeneral.dataset.vinculado) {
+    tabGeneral.dataset.vinculado = "1";
+    tabGeneral.addEventListener("shown.bs.tab", () => miChart && miChart.resize());
   }
+
+  bootstrap.Modal.getOrCreateInstance(modalEl).show();
 }

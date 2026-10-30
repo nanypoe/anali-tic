@@ -1,0 +1,16 @@
+{
+    "_nota": "Clave: forma corta que aparece en la base de datos (sin tildes, minúsculas). Valor: nombre completo para exportaciones. Si el valor está vacío, la app usa el nombre corto en mayúsculas y lo indica en el panel de calidad de datos.",
+    "contabilidad" : "Técnico General en Contabilidad",
+    "computacion" : "Técnico General en Computación",
+    "cocina" : "Técnico General en Cocina y Gastronomía",
+    "ingles" : "Técnico Especialista en Inglés",
+    "diseño" : "Técnico Especialista en Diseño Gráfico",
+    "pasteleria" : "Técnico General en Pastelería y Panadería",
+    "programacion" : "Técnico Especialista en Programación",
+    "banca" : "Técnico Especialista en Banca y Finanzas",
+    "administracion" : "Técnico General en Administración",
+    "veterinaria" : "Técnico General en Veterinaria",
+    "zootecnia" : "Técnico General en Zootecnia",
+    "agronomia" : "Técnico General en Agronomía",
+    "ia" : "Técnico Especialista en Inteligencia Artificial"
+}

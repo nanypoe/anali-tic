@@ -1,0 +1,5 @@
+{
+    "anio_academico": 2026,
+    "contrasena_por_defecto": "Inatec{aa}*",
+    "_nota": "Cambie anio_academico al iniciar un nuevo año (por ejemplo 2027). {aa} se reemplaza por los dos últimos dígitos del año: Inatec26*, Inatec27*."
+}

@@ -1,7 +1,7 @@
 {
     "id": "26_ihs_1semestre",
     "nombre": "Identidad Histórica y Sociocultural de Nicaragua",
-    "tipo":"modulo",
+    "tipo": "modulo",
     "convalidaciones_map": {
         "Identidad Histórica y Sociocultural de Nicaragua": "conv_IHS"
     },
@@ -20,5 +20,8 @@
                 "Cuestionario:Act.4.2-Cuest-El Pueblo Presidente a partir de 2007 (Real)"
             ]
         }
+    },
+    "fechas_cierre": {
+        "Identidad Histórica y Sociocultural de Nicaragua": ""
     }
 }

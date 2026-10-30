@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 150" role="img" aria-label="Ilustración de carga de archivos">
+  <style>
+    .ic-hoja { animation: ic-caer 2.4s ease-in-out infinite; }
+    .ic-h2 { animation-delay: .4s; }
+    .ic-barra { transform-box: fill-box; transform-origin: bottom; animation: ic-crece 2.4s ease-in-out infinite; }
+    .ic-b2 { animation-delay: .25s; }
+    .ic-b3 { animation-delay: .5s; }
+    @keyframes ic-caer { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+    @keyframes ic-crece { 0%,100% { transform: scaleY(.55); } 50% { transform: scaleY(1); } }
+    @media (prefers-reduced-motion: reduce) { .ic-hoja, .ic-barra { animation: none; } }
+  </style>
+  <ellipse cx="110" cy="138" rx="80" ry="7" fill="#DCD6FB"/>
+  <g class="ic-hoja">
+    <rect x="34" y="22" width="78" height="100" rx="10" fill="#FFFFFF" stroke="#5B3DF5" stroke-width="3"/>
+    <rect x="48" y="40" width="50" height="6" rx="3" fill="#C4B8FA"/>
+    <rect x="48" y="54" width="40" height="6" rx="3" fill="#E4DEFD"/>
+    <rect x="48" y="68" width="46" height="6" rx="3" fill="#E4DEFD"/>
+    <circle cx="82" cy="100" r="10" fill="#14B8A6"/>
+    <path d="M77 100 l4 4 l7 -8" stroke="#FFFFFF" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g class="ic-hoja ic-h2">
+    <rect x="110" y="30" width="78" height="100" rx="10" fill="#FFF6DB" stroke="#FFB703" stroke-width="3"/>
+    <rect x="130" y="100" width="10" height="20" rx="2" class="ic-barra" fill="#FF6B5B"/>
+    <rect x="146" y="88" width="10" height="32" rx="2" class="ic-barra ic-b2" fill="#5B3DF5"/>
+    <rect x="162" y="72" width="10" height="48" rx="2" class="ic-barra ic-b3" fill="#14B8A6"/>
+    <rect x="124" y="46" width="50" height="6" rx="3" fill="#FFD766"/>
+  </g>
+</svg>

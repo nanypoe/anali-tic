@@ -3,7 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Anali-TIC v2.0</title>
+    <title>Anali-TIC v2.0 · Analítica de Aulas Virtuales</title>
+    <meta name="description" content="Anali-TIC: análisis, seguimiento y exportación de calificaciones de Aulas Virtuales del Campus INATEC." />
+    <meta name="theme-color" content="#5B3DF5" />
+    <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="./assets/favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -21,11 +27,9 @@
   <body class="bg-light d-flex flex-column min-vh-100">
     <div id="loader-overlay">
       <div class="text-center">
-        <div
-          class="spinner-border text-primary"
-          role="status"
-          style="width: 3.5rem; height: 3.5rem"
-        ></div>
+        <div class="loader-barras" role="status" aria-label="Cargando">
+          <span></span><span></span><span></span><span></span>
+        </div>
         <h4 class="mt-3 text-white fw-bold">
           Anali-TIC está procesando los datos...
         </h4>
@@ -35,15 +39,15 @@
       </div>
     </div>
 
-    <header class="bg-white border-bottom shadow-sm py-3 mb-4">
+    <header class="header-marca py-2 mb-3">
       <div class="container-fluid px-4 d-flex justify-content-between align-items-center">
         <div>
-          <h3 class="fw-bold text-primary mb-0 d-flex align-items-center gap-2">
-            <i class="bi bi-bar-chart-line-fill text-primary"></i>
-            <span>Anali-TIC</span>
-            <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-6 rounded-pill px-3">v2.0</span>
+          <h3 class="fw-bold mb-0 d-flex align-items-center gap-2">
+            <img src="./assets/logo-anali-tic.svg" alt="" class="brand-logo" />
+            <span class="brand-titulo">Anali-TIC</span>
+            <span class="badge fs-6 rounded-pill px-3">v2.0</span>
           </h3>
-          <small class="text-muted fw-semibold"
+          <small class="fw-semibold"
             >Sistema de análisis y seguimiento de Aulas Virtuales del Campus INATEC</small
           >
         </div>
@@ -60,18 +64,19 @@
 
     <main class="flex-grow-1 container-fluid px-4 mb-4">
       <div id="upload-container" class="card border-0 shadow-sm rounded-4 overflow-hidden">
-        <div class="card-body p-4 p-md-5">
-          <div class="text-center max-w-700 mx-auto mb-4">
+        <div class="card-body p-3 p-md-4">
+          <div class="text-center max-w-700 mx-auto mb-3">
+            <img src="./assets/ilustracion-carga.svg" alt="" class="ilustracion-carga" />
             <span class="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill fw-bold mb-2">
               <i class="bi bi-rocket-takeoff-fill me-1"></i> Panel de Inicio
             </span>
             <h4 class="fw-bold text-dark mt-1">Cargar archivos para Análisis</h4>
             <p class="text-muted small">
-              Selecciona o arrastra la base de datos de estudiantes y el reporte de calificaciones descargado del CAMPUS Virtual para generar los análisis visuales.
+              Selecciona la base de datos de estudiantes y el reporte de calificaciones descargado del CAMPUS Virtual para generar los análisis visuales.
             </p>
           </div>
 
-          <div class="row g-4">
+          <div class="row g-3">
             <div class="col-md-6">
               <div class="upload-card border border-dashed rounded-4 p-4 text-center bg-white h-100 d-flex flex-column justify-content-between">
                 <div>
@@ -85,6 +90,7 @@
                   </p>
                 </div>
                 <div class="mt-2">
+                  <div class="archivo-nombre small text-truncate" id="nombre-db"></div>
                   <input
                     type="file"
                     id="db-file-input"
@@ -96,146 +102,123 @@
             </div>
 
             <div class="col-md-6">
-              <div class="upload-card border border-dashed border-success-subtle rounded-4 p-4 text-center bg-white h-100 d-flex flex-column justify-content-between">
+              <div class="upload-card border border-dashed paso-turquesa-borde rounded-4 p-4 text-center bg-white h-100 d-flex flex-column justify-content-between">
                 <div>
-                  <div class="icon-shape bg-success-subtle text-success rounded-circle mx-auto mb-3">
+                  <div class="icon-shape paso-turquesa-icono rounded-circle mx-auto mb-3">
                     <i class="bi bi-journal-check fs-2"></i>
                   </div>
-                  <span class="badge bg-success text-white rounded-pill px-3 py-1 mb-2">Paso 2</span>
+                  <span class="badge paso-turquesa-badge rounded-pill px-3 py-1 mb-2">Paso 2</span>
                   <h6 class="fw-bold text-dark mb-1">Reporte de Calificaciones del Campus INATEC</h6>
                   <p class="text-muted x-small mb-3">
                     Archivos <code>.xlsx</code> o <code>.ods</code> con las notas descargadas de la plataforma virtual CAMPUS.
                   </p>
                 </div>
                 <div class="mt-2">
+                  <div class="archivo-nombre small text-truncate" id="nombre-grades"></div>
                   <input
                     type="file"
                     id="grades-file-input"
                     accept=".ods, .xlsx"
-                    class="form-control form-control-sm border-success-subtle"
+                    class="form-control form-control-sm paso-turquesa-borde"
                   />
                 </div>
               </div>
             </div>
           </div>
+
+          <div class="text-center mt-3 pt-2 border-top">
+            <small class="text-muted d-block mb-2">¿Necesitas la estructura de la base de datos?</small>
+            <button type="button" id="btn-plantilla-tic" class="btn btn-sm btn-outline-primary rounded-pill px-3 me-1 btn-plantilla">
+              <i class="bi bi-file-earmark-spreadsheet me-1"></i> Plantilla Docente TIC
+            </button>
+            <button type="button" id="btn-plantilla-virtual" class="btn btn-sm btn-outline-secondary rounded-pill px-3 btn-plantilla">
+              <i class="bi bi-file-earmark-spreadsheet me-1"></i> Plantilla Docente Virtual
+            </button>
+          </div>
         </div>
       </div>
 
       <div id="status-area" class="d-none">
-        <div class="card border-0 shadow-sm mb-3 rounded-3">
-          <div
-            class="card-body p-3 d-flex flex-wrap align-items-center justify-content-between gap-3"
-          >
-            <div>
-              <small class="text-muted d-block fw-bold mb-1">MÓDULO/CURSO:</small>
-              <div id="pills-modulos" class="nav-pills-modern"></div>
+        <!-- PANEL DE CONTROL: tres filas compactas -->
+        <div class="panel-control card border-0 shadow-sm rounded-4 mb-3">
+          <div class="card-body p-2 px-3">
+            <!-- Fila 1: estado de la base + acciones -->
+            <div class="fila-control d-flex flex-wrap align-items-center justify-content-between gap-2">
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span id="badge-tipo-base" class="badge rounded-pill"></span>
+                <small id="info-sesion" class="text-muted"></small>
+              </div>
+              <div class="d-flex flex-wrap gap-2">
+                <button id="btn-ver-tabla-grupos" class="btn btn-sm btn-accion btn-accion-principal">
+                  <i class="bi bi-pie-chart-fill me-1"></i> Análisis del aula
+                </button>
+                <button class="btn btn-sm btn-accion" id="btn-gestionar-estudiantes" title="Cambiar estado (activo/retirado) y convalidaciones">
+                  <i class="bi bi-person-gear me-1"></i> Gestionar
+                </button>
+                <button class="btn btn-sm btn-accion" id="btn-exportar-tabla" title="Exportar a Excel la tabla que estás viendo">
+                  <i class="bi bi-table me-1"></i> Exportar tabla
+                </button>
+                <button class="btn btn-sm btn-accion" id="btn-exportar-pendientes" title="Exportar a Excel los estudiantes con módulos pendientes">
+                  <i class="bi bi-file-earmark-excel-fill me-1"></i> Exportar pendientes
+                </button>
+                <button class="btn btn-sm btn-accion" id="btn-esquela-global" title="Generar esquelas de compromiso en Word">
+                  <i class="bi bi-file-earmark-word-fill me-1"></i> Esquela
+                </button>
+              </div>
             </div>
 
-            <div class="d-flex align-items-center gap-2" style="min-width: 320px">
-              <div class="flex-grow-1">
-                <small class="text-muted d-block fw-bold mb-1">GRUPO :</small>
-                <select
-                  id="grupo-selector"
-                  class="form-select form-select-sm border-primary-subtle fw-bold text-primary"
-                ></select>
+            <!-- Fila 2: módulo y grupo -->
+            <div class="fila-control d-flex flex-wrap align-items-center gap-2 mt-2">
+              <div id="pills-modulos" class="nav-pills-modern"></div>
+              <select id="grupo-selector" class="form-select form-select-sm selector-grupo border-primary-subtle fw-bold text-primary"></select>
+            </div>
+
+            <!-- Fila 3: estados, búsqueda y captura -->
+            <div class="fila-control d-flex flex-wrap align-items-center justify-content-between gap-2 mt-2">
+              <div id="pills-estados" class="nav-pills-modern align-items-center">
+                <button class="btn-pill active" data-estado="TODOS">
+                  <i class="bi bi-people-fill pill-icono"></i>Todos
+                  <span id="badge-cnt-todos" class="badge bg-secondary ms-1">0</span>
+                </button>
+                <button class="btn-pill" data-estado="COMPLETADO">
+                  <i class="bi bi-check2-circle pill-icono"></i>Completados
+                  <span id="badge-cnt-completados" class="badge bg-success ms-1">0</span>
+                </button>
+                <button class="btn-pill" data-estado="PENDIENTE">
+                  <i class="bi bi-hourglass-split pill-icono"></i>Pendientes
+                  <span id="badge-cnt-pendientes" class="badge bg-warning text-dark ms-1">0</span>
+                </button>
+                <button class="btn-pill" data-estado="CONVALIDADO">
+                  <i class="bi bi-patch-check-fill pill-icono"></i>Convalidados
+                  <span id="badge-cnt-convalidados" class="badge bg-primary ms-1">0</span>
+                </button>
+                <button class="btn-pill" data-estado="RETIRADO">
+                  <i class="bi bi-person-dash-fill pill-icono"></i>Retirados
+                  <span id="badge-cnt-retirados" class="badge bg-secondary ms-1">0</span>
+                </button>
+                <div class="form-check form-switch ms-2" title="Solo aplica al filtro Todos">
+                  <input class="form-check-input" type="checkbox" id="chk-mostrar-retirados">
+                  <label class="form-check-label small fw-semibold text-muted" for="chk-mostrar-retirados">Incluir retirados en Todos</label>
+                </div>
               </div>
-              <div class="mt-3">
-                <button id="btn-ver-tabla-grupos" class="btn btn-sm btn-outline-primary fw-bold shadow-sm">
-                  <i class="bi bi-pie-chart-fill me-1"></i> Análisis del Aula
+              <div class="d-flex flex-wrap gap-2 align-items-center">
+                <div class="input-group input-group-sm buscador">
+                  <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
+                  <input type="text" id="search-input" class="form-control border-start-0" placeholder="Buscar estudiante..." style="width: 190px" />
+                </div>
+                <button class="btn btn-sm btn-dark" id="btn-modo-reporte">Ocultar calificaciones</button>
+                <button class="btn btn-sm btn-captura" id="btn-capturar-tabla" title="Captura solo lo que muestra la tabla con el filtro activo">
+                  <i class="bi bi-camera-fill me-1"></i>Capturar tabla
                 </button>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="card border-0 shadow-sm mb-3 rounded-3">
-          <div
-            class="card-body p-3 d-flex flex-wrap align-items-center justify-content-between gap-2"
-          >
-            <div id="pills-estados" class="nav-pills-modern align-items-center">
-              <button class="btn-pill active" data-estado="TODOS">
-                👥 TODOS
-                <span id="badge-cnt-todos" class="badge bg-secondary ms-1"
-                  >0</span
-                >
-              </button>
-              <button class="btn-pill" data-estado="COMPLETADO">
-                🟢 Completados
-                <span id="badge-cnt-completados" class="badge bg-success ms-1"
-                  >0</span
-                >
-              </button>
-              <button class="btn-pill" data-estado="PENDIENTE">
-                🟡 Pendientes
-                <span
-                  id="badge-cnt-pendientes"
-                  class="badge bg-warning text-dark ms-1"
-                  >0</span
-                >
-              </button>
-              <button class="btn-pill" data-estado="CONVALIDADO">
-                🔵 Convalidados
-                <span id="badge-cnt-convalidados" class="badge bg-primary ms-1"
-                  >0</span
-                >
-              </button>
-              <button class="btn-pill" data-estado="RETIRADO">
-                ⚪ Retirados
-                <span id="badge-cnt-retirados" class="badge bg-secondary ms-1"
-                  >0</span
-                >
-              </button>
-
-              <div class="form-check form-switch ms-3">
-                <input class="form-check-input" type="checkbox" id="chk-mostrar-retirados">
-                <label class="form-check-label small fw-semibold text-muted" for="chk-mostrar-retirados">
-                  Incluir retirados en TODOS
-                </label>
-              </div>
-            </div>
-
-            <div class="d-flex flex-wrap gap-2 align-items-center">
-              <input
-                type="text"
-                id="search-input"
-                class="form-control form-control-sm"
-                placeholder="🔍 Buscar estudiante..."
-                style="width: 200px"
-              />
-              <button class="btn btn-sm btn-dark" id="btn-modo-reporte">
-                Ocultar calificaciones
-              </button>
-              <button
-                class="btn btn-sm btn-outline-success fw-bold"
-                id="btn-exportar-pendientes"
-                title="Exportar a Excel los estudiantes con módulos pendientes"
-              >
-                <i class="bi bi-file-earmark-excel-fill me-1"></i> Exportar pendientes
-              </button>
-              <button
-                class="btn btn-sm btn-outline-primary fw-bold"
-                id="btn-esquela-global"
-                title="Generar esquelas de compromiso en Word"
-              >
-                <i class="bi bi-file-earmark-word-fill me-1"></i> Esquela
-              </button>
-              <button
-                class="btn btn-sm btn-success"
-                id="btn-capturar-tabla"
-                title="Capturar como Imagen"
-              >
-                📸 Capturar tabla
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="card shadow-sm border-0 overflow-hidden rounded-3">
-          <div class="table-responsive">
-            <table
-              class="table table-hover align-middle mb-0 table-anali"
-              id="tabla-resultados"
-            >
+        <!-- TABLA: protagonista de la pantalla, con altura propia y cabecera fija -->
+        <div class="card shadow-sm border-0 overflow-hidden rounded-4 tabla-card">
+          <div class="table-responsive tabla-scroll">
+            <table class="table table-hover align-middle mb-0 table-anali" id="tabla-resultados">
               <thead class="table-light text-center" id="tabla-head"></thead>
               <tbody id="tabla-body" class="small"></tbody>
             </table>
@@ -244,12 +227,12 @@
       </div>
     </main>
 
-    <footer class="footer-anali mt-auto py-3 bg-white border-top shadow-sm">
+    <footer class="footer-anali mt-auto py-3 shadow-sm">
       <div class="container-fluid px-4">
         <div class="row align-items-center justify-content-between g-2">
           <div class="col-md-8">
             <div class="d-flex align-items-center gap-2">
-              <i class="bi bi-bar-chart-line-fill text-primary fs-5"></i>
+              <img src="./assets/logo-anali-tic.svg" alt="" width="28" height="28" />
               <div>
                 <span class="fw-bold text-dark">Anali-TIC v2.0</span>
                 <span class="text-muted mx-2">|</span>
@@ -304,79 +287,59 @@
       </div>
     </div>
 
-    <!-- MODAL 2: CREDENCIALES -->
-    <div
-      class="modal fade"
-      id="modalCredenciales"
-      tabindex="-1"
-      aria-hidden="true"
-    >
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
-          <div class="modal-header bg-dark text-white py-2">
-            <h5 class="modal-title fs-6 fw-bold">
-              <i class="bi bi-key-fill me-2"></i> Credenciales de CAMPUS
-            </h5>
-            <button
-              type="button"
-              class="btn-close btn-close-white"
-              data-bs-dismiss="modal"
-              aria-label="Close"
-            ></button>
-          </div>
-          <div class="modal-body p-4"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- MODAL 3: MÉTRICAS DE AULA -->
-    <div
-      class="modal fade"
-      id="modalMetricasAula"
-      tabindex="-1"
-      aria-hidden="true"
-    >
+    <!-- MODAL 3: ANÁLISIS DEL AULA -->
+    <div class="modal fade" id="modalMetricasAula" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
-          <div class="modal-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
-            <h5 class="modal-title fs-6 fw-bold mb-0">
-              <i class="bi bi-pie-chart-fill me-2"></i> Análisis y Métricas del Aula
-            </h5>
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+          <div class="modal-header modal-header-marca py-3">
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+              <span class="icono-marca"><i class="bi bi-pie-chart-fill"></i></span>
+              <div>
+                <h5 class="modal-title fs-5 fw-bold mb-0">Análisis del aula</h5>
+                <small class="opacity-75">Cómo va el módulo, grupo por grupo</small>
+              </div>
+            </div>
             <div class="d-flex align-items-center gap-2">
-              <select id="modal-modulo-selector" class="form-select form-select-sm bg-white text-primary fw-bold border-0 shadow-sm"></select>
-              <button
-                type="button"
-                class="btn-close btn-close-white"
-                data-bs-dismiss="modal"
-                aria-label="Close"
-              ></button>
+              <select id="modal-modulo-selector" class="form-select form-select-sm fw-bold border-0 shadow-sm selector-modulo-modal"></select>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
           </div>
           <div class="modal-body p-4">
-            <ul class="nav nav-pills mb-3 border-bottom pb-2" id="pills-tab-metricas" role="tablist">
+            <div id="metricas-kpis" class="kpi-grid mb-4"></div>
+
+            <ul class="nav nav-pills nav-pills-marca mb-3" id="pills-tab-metricas" role="tablist">
               <li class="nav-item" role="presentation">
-                <button class="nav-link active btn-sm fw-semibold" id="pills-general-tab" data-bs-toggle="pill" data-bs-target="#pills-general" type="button" role="tab">
-                  <i class="bi bi-pie-chart me-1"></i> General
+                <button class="nav-link active fw-semibold" id="pills-general-tab" data-bs-toggle="pill" data-bs-target="#pills-general" type="button" role="tab">
+                  <i class="bi bi-pie-chart me-1"></i> Distribución
                 </button>
               </li>
               <li class="nav-item" role="presentation">
-                <button class="nav-link btn-sm fw-semibold" id="pills-grupal-tab" data-bs-toggle="pill" data-bs-target="#pills-grupal" type="button" role="tab">
-                  <i class="bi bi-table me-1"></i> Grupal
+                <button class="nav-link fw-semibold" id="pills-grupal-tab" data-bs-toggle="pill" data-bs-target="#pills-grupal" type="button" role="tab">
+                  <i class="bi bi-people me-1"></i> Por grupo
                 </button>
               </li>
             </ul>
 
-            <div class="tab-content" id="pills-tabContent-metricas">
+            <div class="tab-content">
               <div class="tab-pane fade show active" id="pills-general" role="tabpanel">
                 <div class="d-flex justify-content-end mb-2">
-                  <button id="btn-descargar-grafico-png" class="btn btn-sm btn-outline-primary fw-bold">
-                    <i class="bi bi-camera me-1"></i> 📸 Descargar Gráfico PNG
+                  <button id="btn-descargar-grafico-png" class="btn btn-sm btn-accion">
+                    <i class="bi bi-image me-1"></i> Descargar gráfico PNG
                   </button>
                 </div>
-                <div class="row justify-content-center align-items-center py-2">
-                  <div class="col-md-8 col-lg-6 text-center">
+                <div class="row align-items-center g-4">
+                  <div class="col-lg-6">
                     <div class="chart-container">
                       <canvas id="chartEstadoEstudiantes"></canvas>
+                    </div>
+                  </div>
+                  <div class="col-lg-6">
+                    <div class="guia-metricas">
+                      <h6 class="fw-bold mb-3">¿Qué significa cada categoría?</h6>
+                      <div class="guia-item"><span class="dot-estado dot-completado"></span><div><strong>Completados</strong><br><small>Terminaron todas las actividades del módulo o lo tienen convalidado.</small></div></div>
+                      <div class="guia-item"><span class="dot-estado dot-pendiente"></span><div><strong>En progreso</strong><br><small>Entregaron alguna actividad, pero aún les faltan.</small></div></div>
+                      <div class="guia-item"><span class="dot-estado dot-todos"></span><div><strong>Sin iniciar</strong><br><small>Todavía no tienen ninguna actividad entregada en el módulo.</small></div></div>
+                      <div class="guia-item"><span class="dot-estado dot-retirado"></span><div><strong>Retirados</strong><br><small>No entran en los porcentajes ni en los pendientes.</small></div></div>
                     </div>
                   </div>
                 </div>
@@ -384,12 +347,11 @@
 
               <div class="tab-pane fade" id="pills-grupal" role="tabpanel">
                 <div class="d-flex justify-content-end mb-3">
-                  <button id="btn-exportar-resumen-excel" class="btn btn-sm btn-success fw-bold">
-                    <i class="bi bi-file-earmark-excel me-1"></i> 📊 Exportar Resumen a Excel
+                  <button id="btn-exportar-resumen-excel" class="btn btn-sm btn-accion btn-accion-principal">
+                    <i class="bi bi-file-earmark-excel me-1"></i> Exportar resumen a Excel
                   </button>
                 </div>
-                <div id="tabla-resumen-grupos-container" class="table-responsive">
-                </div>
+                <div id="tabla-resumen-grupos-container" class="table-responsive"></div>
               </div>
             </div>
           </div>
@@ -434,13 +396,13 @@
               Centro / Subsede
             </label>
             <select id="export-centro-selector" class="form-select">
-              <option value="che-guevara">
+              <option value="ctche">
                 CENTRO TECNOLÓGICO CHE GUEVARA, SOMOTO
               </option>
-              <option value="palacaguina">
+              <option value="subsede">
                 SUBSEDE AGROPECUARIA, PALACAGÜINA
               </option>
-              <option value="cusmapa">
+              <option value="ctfabretto">
                 CENTRO TECNOLÓGICO PADRE RAFAEL MARÍA FABRETTO, CUSMAPA
               </option>
             </select>
@@ -536,13 +498,13 @@
                   Centro / Subsede
                 </label>
                 <select id="esquela-centro-selector" class="form-select">
-                  <option value="che-guevara">
+                  <option value="ctche">
                     CENTRO TECNOLÓGICO CHE GUEVARA, SOMOTO
                   </option>
-                  <option value="palacaguina">
+                  <option value="subsede">
                     SUBSEDE AGROPECUARIA, PALACAGÜINA
                   </option>
-                  <option value="cusmapa">
+                  <option value="ctfabretto">
                     CENTRO TECNOLÓGICO PADRE RAFAEL MARÍA FABRETTO, CUSMAPA
                   </option>
                 </select>
@@ -580,33 +542,26 @@
                   class="form-select"
                 ></select>
               </div>
-              <div class="col-md-4">
-                <label
-                  for="esquela-fecha"
-                  class="form-label small fw-bold text-uppercase text-muted"
-                >
+              <div class="col-md-3">
+                <label for="esquela-fecha" class="form-label small fw-bold text-uppercase text-muted">
                   Fecha de apertura
                 </label>
                 <input type="date" id="esquela-fecha" class="form-control" />
               </div>
-              <div class="col-md-4">
-                <label
-                  for="esquela-hora-inicio"
-                  class="form-label small fw-bold text-uppercase text-muted"
-                >
+              <div class="col-md-3">
+                <label for="esquela-hora-inicio" class="form-label small fw-bold text-uppercase text-muted">
                   Hora de inicio
                 </label>
-                <input
-                  type="time"
-                  id="esquela-hora-inicio"
-                  class="form-control"
-                />
+                <input type="time" id="esquela-hora-inicio" class="form-control" />
               </div>
-              <div class="col-md-4">
-                <label
-                  for="esquela-hora-fin"
-                  class="form-label small fw-bold text-uppercase text-muted"
-                >
+              <div class="col-md-3">
+                <label for="esquela-fecha-cierre" class="form-label small fw-bold text-uppercase text-muted">
+                  Fecha de cierre
+                </label>
+                <input type="date" id="esquela-fecha-cierre" class="form-control" />
+              </div>
+              <div class="col-md-3">
+                <label for="esquela-hora-fin" class="form-label small fw-bold text-uppercase text-muted">
                   Hora de cierre
                 </label>
                 <input type="time" id="esquela-hora-fin" class="form-control" />
@@ -635,6 +590,51 @@
         </div>
       </div>
     </div>
+
+    <!-- MODAL 6: GESTIÓN DE ESTUDIANTES -->
+    <div class="modal fade" id="modalGestionEstudiantes" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+          <div class="modal-header modal-header-marca py-3">
+            <h5 class="modal-title fs-5 fw-bold mb-0">
+              <i class="bi bi-person-gear me-2"></i> Gestión de estudiantes
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body p-0">
+            <div class="p-3 border-bottom bg-light d-flex flex-wrap gap-2 align-items-center">
+              <select id="gestion-grupo-selector" class="form-select form-select-sm" style="max-width: 340px"></select>
+              <input id="gestion-buscar" type="text" class="form-control form-control-sm" placeholder="Buscar estudiante..." style="max-width: 220px" />
+              <span id="gestion-resumen" class="small text-muted ms-auto"></span>
+            </div>
+            <div class="px-3 py-2 small text-muted border-bottom d-flex flex-wrap gap-3">
+              <span><span class="badge bg-success-subtle text-success border border-success-subtle">Activo</span> sigue en el aula y cuenta en los conteos</span>
+              <span><span class="badge bg-secondary">Retirado</span> sale de conteos y de pendientes</span>
+              <span><span class="badge bg-primary">Convalidado</span> el módulo cuenta como completado</span>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-sm align-middle mb-0">
+                <thead id="gestion-head" class="table-light"></thead>
+                <tbody id="gestion-body"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="modal-footer py-2 justify-content-between">
+            <small id="gestion-aviso" class="text-muted"></small>
+            <div class="d-flex gap-2">
+              <button id="btn-gestion-descartar" class="btn btn-sm btn-outline-danger">
+                <i class="bi bi-arrow-counterclockwise me-1"></i> Descartar cambios
+              </button>
+              <button id="btn-gestion-exportar" class="btn btn-sm btn-success fw-bold">
+                <i class="bi bi-file-earmark-excel-fill me-1"></i> Exportar base actualizada
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast-contenedor" class="toast-contenedor" aria-live="polite"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="./js/app.js"></script>

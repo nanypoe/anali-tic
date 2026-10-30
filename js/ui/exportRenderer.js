@@ -6,14 +6,30 @@
  * filtros automáticos y columnas para firma/seguimiento).
  */
 
-export const CENTROS = {
-  "che-guevara": "CENTRO TECNOLÓGICO CHE GUEVARA, SOMOTO",
-  palacaguina: "SUBSEDE AGROPECUARIA, PALACAGÜINA",
-  cusmapa: "CENTRO TECNOLÓGICO PADRE RAFAEL MARÍA FABRETTO, CUSMAPA",
-};
+import {
+  resolverCentro,
+  resolverCarrera,
+  centroPredominante,
+} from "../core/diccionarios.js";
+
+export const CENTRO_POR_DEFECTO = "ctche";
+
+/**
+ * Nombre institucional completo a partir del código del diccionario (ctche, subsede, ctfabretto).
+ */
+export function nombreCentroPorCodigo(codigo) {
+  return (
+    resolverCentro(codigo)?.nombre ||
+    String(codigo || "").trim() ||
+    resolverCentro(CENTRO_POR_DEFECTO)?.nombre ||
+    ""
+  );
+}
+
+export { centroPredominante };
 
 const COLORES = {
-  azulCorporativo: "FF1F4E79",
+  azulCorporativo: "FF5B3DF5",
   azulClaro: "FFD9E2F3",
   azulBorde: "FFB4C6E7",
   blanco: "FFFFFFFF",
@@ -113,6 +129,10 @@ export function formatearCarrera(estudiante) {
     return "";
   }
 
+  // Si la carrera existe en el diccionario, se usa su nombre completo institucional.
+  const carreraCompleta = resolverCarrera(base);
+  if (carreraCompleta) return carreraCompleta.toUpperCase();
+
   const normalizada = normalizarTexto(base);
   const prefijo = CARRERAS_PREFIJO_TE.some((carrera) =>
     normalizada.includes(carrera),
@@ -152,6 +172,7 @@ export function formatearTurno(estudiante) {
   if (lower.includes("nocturno")) return "NOCTURNO";
   if (lower.includes("sabatino")) return "SABATINO";
   if (lower.includes("dominical")) return "DOMINICAL";
+  if (lower.includes("virtual")) return "VIRTUAL";
 
   return "";
 }
@@ -896,10 +917,7 @@ export async function exportarPendientesExcel(
     throw new Error("No hay estudiantes con módulos pendientes para exportar.");
   }
 
-  const centro =
-    CENTROS[nombreCentro] ||
-    String(nombreCentro || "").trim() ||
-    CENTROS["che-guevara"];
+  const centro = nombreCentroPorCodigo(nombreCentro);
 
   const fechaExportacion = new Date();
   const fechaNotificacion = formatearFechaNotificacion(fechaExportacion);
@@ -1135,7 +1153,7 @@ export function mostrarModalExportacionPendientes(datosEstudiantes, configAula) 
   const grupos = obtenerGruposAnalizados(datosEstudiantes);
 
   if (selectorCentro && !selectorCentro.value) {
-    selectorCentro.value = "che-guevara";
+    selectorCentro.value = centroPredominante(datosEstudiantes) || CENTRO_POR_DEFECTO;
   }
 
   // Listado de grupos y selección del módulo optativo que cursa cada uno.
@@ -1219,7 +1237,7 @@ export function mostrarModalExportacionPendientes(datosEstudiantes, configAula) 
       try {
         const centroSeleccionado = selectorCentro
           ? selectorCentro.value
-          : "che-guevara";
+          : CENTRO_POR_DEFECTO;
         const selecciones = leerSelecciones();
 
         await exportarPendientesExcel(

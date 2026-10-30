@@ -1,26 +1,10 @@
 // js/core/analyzer.js
-
-/**
- * Carga asíncrona del diccionario máster de grupos transversales desde JSON.
- */
-export async function cargarDiccionarioGruposMaster() {
-  try {
-    const response = await fetch('./config/grupos/transversales_2026.json');
-    if (!response.ok) {
-      console.warn("No se pudo cargar el JSON máster de grupos.");
-      return {};
-    }
-    return await response.json();
-  } catch (error) {
-    console.warn("Error al cargar config/grupos/transversales_2026.json:", error);
-    return {};
-  }
-}
+import { resolverCentro, resolverCarrera, contrasenaPorDefecto } from "./diccionarios.js";
 
 /**
  * Busca de forma flexible valores en objetos de Excel sin importar tildes o mayúsculas.
  */
-function obtenerValorCampo(obj, posiblesClaves, valorDefecto = "") {
+export function obtenerValorCampo(obj, posiblesClaves, valorDefecto = "") {
   if (!obj || typeof obj !== "object") return valorDefecto;
 
   const mapaObjeto = new Map();
@@ -54,7 +38,7 @@ function obtenerValorCampo(obj, posiblesClaves, valorDefecto = "") {
   return valorDefecto;
 }
 
-const CLAVES_CORREO = [
+export const CLAVES_CORREO = [
   "correo",
   "direccion de correo",
   "email",
@@ -71,6 +55,7 @@ function deducirTurno(texto) {
   if (t.includes("SABATINO")) return "SABATINO";
   if (t.includes("DOMINICAL")) return "DOMINICAL";
   if (t.includes("NOCTURNO")) return "NOCTURNO";
+  if (t.includes("VIRTUAL")) return "VIRTUAL";
   return "GENERAL";
 }
 
@@ -82,10 +67,32 @@ function limpiarTextoGrupo(texto) {
     .trim();
 }
 
+const CLAVES_NOMBRE_COMPLETO = [
+  "protagonista",
+  "nombres y apellidos",
+  "nombre y apellidos",
+  "nombre completo",
+];
+
+/**
+ * Convierte el turno de la base de datos a su valor institucional.
+ */
+function normalizarTurno(texto) {
+  const t = String(texto || "").toUpperCase().trim();
+  if (!t) return "";
+  if (t.includes("MATUTINO") || t.includes("DIURNO")) return "MATUTINO";
+  if (t.includes("VESPERTINO")) return "VESPERTINO";
+  if (t.includes("NOCTURNO")) return "NOCTURNO";
+  if (t.includes("SABATINO")) return "SABATINO";
+  if (t.includes("DOMINICAL")) return "DOMINICAL";
+  if (t.includes("VIRTUAL")) return "VIRTUAL";
+  return t;
+}
+
 /**
  * Analiza un conjunto individual de datos de aula.
  */
-export function analizarEstudiantes(datosDB, datosCalificaciones, configAula, mapaGruposMaster = null) {
+export function analizarEstudiantes(datosDB, datosCalificaciones, configAula) {
   const correosIgnorados = [
     "renaldy.sanchez@tecnacional.edu.ni",
     "mitjoa307@gmail.com",
@@ -190,7 +197,7 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula, ma
         }
       }
 
-      const protagonistaCal = obtenerValorCampo(estCal, ["protagonista"]);
+      const protagonistaCal = obtenerValorCampo(estCal, CLAVES_NOMBRE_COMPLETO);
       const nombreCal = obtenerValorCampo(estCal, [
         "nombre",
         "nombres",
@@ -201,9 +208,7 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula, ma
         "apellidos",
         "last name",
       ]);
-      const protagonistaDb = obtenerValorCampo(infoEstudiante, [
-        "protagonista",
-      ]);
+      const protagonistaDb = obtenerValorCampo(infoEstudiante, CLAVES_NOMBRE_COMPLETO);
       const nombreDb = obtenerValorCampo(infoEstudiante, [
         "nombre",
         "nombres",
@@ -258,33 +263,27 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula, ma
         obtenerValorCampo(estCal, ["grupo", "grupos"]);
       const carreraBase = carreraRaw || grupoInternoRaw || grupoRaw;
 
-      const coincidenciaCodigo = (grupoRaw + " " + carreraBase).match(/G\d+/i);
-      const codigoMasterClave = coincidenciaCodigo ? coincidenciaCodigo[0].toUpperCase() : null;
+      // Centro: código corto de la BD (ctche, subsede, ctfabretto) resuelto con config/diccionarios/centros.json
+      const centroRaw = obtenerValorCampo(infoEstudiante, ["centro"]);
+      const centroDic = resolverCentro(centroRaw);
+      let centroVal = centroDic ? centroDic.nombre : centroRaw;
+      let centroCodigo = centroDic ? centroDic.codigo : "";
+      let municipioVal = centroDic ? centroDic.municipio : "";
 
-      let centroVal = "CT Che Guevara";
-      let municipioVal = "Somoto";
-      let carreraVal = limpiarTextoGrupo(carreraBase || "GENERAL");
+      // Carrera: forma corta de la BD resuelta a nombre completo si existe en carreras.json
+      let carreraVal = resolverCarrera(carreraBase) || limpiarTextoGrupo(carreraBase || "GENERAL");
       let grupoVal = limpiarTextoGrupo(
         codigoValido || grupoInternoRaw || carreraBase || "GENERAL",
       );
       let codigoVal = codigoValido || grupoInternoRaw || "N/D";
       let turnoVal =
-        turnoRaw ||
+        normalizarTurno(turnoRaw) ||
         deducirTurno(
           [codigoValido, grupoInternoRaw, carreraBase].filter(Boolean).join(" "),
         );
       let etiquetaGrupo = "Sin Grupo Asignado";
 
-      if (codigoMasterClave && mapaGruposMaster && mapaGruposMaster[codigoMasterClave]) {
-        const infoMaster = mapaGruposMaster[codigoMasterClave];
-        centroVal = infoMaster.centro || centroVal;
-        municipioVal = infoMaster.municipio || municipioVal;
-        carreraVal = infoMaster.carrera || carreraVal;
-        codigoVal = infoMaster.codigo || codigoVal;
-        turnoVal = infoMaster.turno || turnoVal;
-        grupoVal = codigoMasterClave;
-        etiquetaGrupo = `${codigoMasterClave} - ${carreraVal} (${centroVal} - ${municipioVal})`;
-      } else if (infoEstudiante || grupoRaw) {
+      if (infoEstudiante || grupoRaw) {
         if (
           codigoValido &&
           carreraVal !== "GENERAL" &&
@@ -304,6 +303,7 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula, ma
 
       const grupoInfo = {
         centro: centroVal,
+        centroCodigo,
         municipio: municipioVal,
         turno: turnoVal,
         carrera: carreraVal,
@@ -312,10 +312,12 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula, ma
         etiquetaGrupo,
       };
 
+      const contrasenaBd = obtenerValorCampo(infoEstudiante, ["contrasena", "contraseña", "password", "pass"], "");
       const datosContacto = {
         telefono: obtenerValorCampo(infoEstudiante, ["telefono", "celular", "phone"], ""),
         usuario: obtenerValorCampo(infoEstudiante, ["usuario", "username", "user"], ""),
-        contrasena: obtenerValorCampo(infoEstudiante, ["contrasena", "password", "pass"], ""),
+        contrasena: contrasenaBd || contrasenaPorDefecto(),
+        contrasenaPorDefecto: !contrasenaBd,
       };
 
       const estadoEstudiante = obtenerValorCampo(
@@ -450,37 +452,3 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula, ma
     });
 }
 
-/**
- * Valida si la nueva aula es del mismo tipo y combina sus estudiantes con la lista actual.
- */
-export function cruzarDatosNuevasAulas(
-  estudiantesExistentes,
-  configAulaActual,
-  nuevosDatosDB,
-  nuevosDatosCalificaciones,
-  nuevaConfigAula,
-  mapaGruposMaster
-) {
-  const modulosActuales = Object.keys(configAulaActual.modulos || {}).sort().join("|");
-  const modulosNuevos = Object.keys(nuevaConfigAula.modulos || {}).sort().join("|");
-
-  if (modulosActuales !== modulosNuevos) {
-    throw new Error(
-      `Conflicto de Estructura: El archivo cargado pertenece a un tipo de aula distinto. ` +
-      `Se esperaba un aula compatible con [${Object.keys(configAulaActual.modulos).join(", ")}].`
-    );
-  }
-
-  const nuevosEstudiantes = analizarEstudiantes(
-    nuevosDatosDB,
-    nuevosDatosCalificaciones,
-    nuevaConfigAula,
-    mapaGruposMaster
-  );
-
-  const mapaUnico = new Map();
-  estudiantesExistentes.forEach((e) => mapaUnico.set(e.correo.toLowerCase(), e));
-  nuevosEstudiantes.forEach((e) => mapaUnico.set(e.correo.toLowerCase(), e));
-
-  return Array.from(mapaUnico.values());
-}
