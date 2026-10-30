@@ -60,7 +60,29 @@
             >Sistema de análisis y seguimiento de Aulas Virtuales del Campus INATEC</small
           >
         </div>
-        <div id="nav-actions" class="d-none">
+        <div id="nav-actions" class="d-none d-flex align-items-center gap-3">
+          <div class="dropdown">
+            <button
+              type="button"
+              id="btn-notificaciones"
+              class="btn btn-sm btn-warning position-relative rounded-pill px-3 d-none"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+              aria-label="Notificaciones"
+              title="Hay estudiantes que requieren revisión"
+            >
+              <i class="bi bi-bell-fill"></i>
+              <span
+                id="notificaciones-contador"
+                class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+              >0</span>
+            </button>
+            <div
+              id="notificaciones-menu"
+              class="dropdown-menu dropdown-menu-end shadow"
+              aria-labelledby="btn-notificaciones"
+            ></div>
+          </div>
           <button
             class="btn btn-sm btn-outline-secondary shadow-sm rounded-pill px-3"
             onclick="location.reload()"
@@ -528,7 +550,7 @@
               </div>
               <div class="col-md-6" id="esquela-grupo-container">
                 <label
-                  for="esquela-grupo-selector"
+                  for="esquela-"
                   class="form-label small fw-bold text-uppercase text-muted"
                 >
                   Grupo
@@ -647,6 +669,31 @@
               </button>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="modal fade"
+      id="modal-notificaciones"
+      tabindex="-1"
+      aria-labelledby="notificaciones-modal-titulo"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+          <div class="modal-header bg-warning-subtle">
+            <h5 class="modal-title fs-6 fw-bold" id="notificaciones-modal-titulo">
+              Notificaciones
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Cerrar"
+            ></button>
+          </div>
+          <div class="modal-body" id="notificaciones-modal-cuerpo"></div>
         </div>
       </div>
     </div>

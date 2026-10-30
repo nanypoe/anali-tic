@@ -1,5 +1,10 @@
 // js/core/analyzer.js
-import { resolverCentro, resolverCarrera, contrasenaPorDefecto } from "./diccionarios.js";
+import {
+  resolverCentro,
+  resolverCarrera,
+  resolverNombreCortoCarrera,
+  contrasenaPorDefecto,
+} from "./diccionarios.js";
 
 /**
  * Busca de forma flexible valores en objetos de Excel sin importar tildes o mayúsculas.
@@ -137,6 +142,7 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula) {
       const registrosCandidatos = dbMap.get(correo) || [];
       
       let infoEstudiante = null;
+      let duplicadoSinCoincidenciaClara = false;
 
       if (registrosCandidatos.length === 1) {
         infoEstudiante = registrosCandidatos[0];
@@ -194,6 +200,7 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula) {
         // Fallback final: primer registro
         if (!infoEstudiante) {
           infoEstudiante = registrosCandidatos[0];
+          duplicadoSinCoincidenciaClara = true;
         }
       }
 
@@ -237,9 +244,7 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula) {
         apellidos = apellidosCal || apellidosDb || "";
       }
 
-      // Datos académicos de la base de datos. Se priorizan las columnas
-      // Carrera, Turno y Código; la columna interna "Grupos" solo se usa
-      // como respaldo cuando no existe Código.
+      // Datos académicos de la base de datos.
       const carreraRaw = obtenerValorCampo(infoEstudiante, [
         "carrera",
         "carrera tecnica",
@@ -255,7 +260,7 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula) {
       ]);
       const codigoValido =
         codigoRaw && !/^n\/?[da]$/i.test(codigoRaw) ? codigoRaw : "";
-      const grupoInternoRaw = obtenerValorCampo(infoEstudiante, ["grupo", "grupos"]);
+      const grupoInternoRaw = obtenerValorCampo(infoEstudiante, ["grupos", "grupo"]);
 
       const grupoRaw =
         codigoValido ||
@@ -272,6 +277,11 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula) {
 
       // Carrera: forma corta de la BD resuelta a nombre completo si existe en carreras.json
       let carreraVal = resolverCarrera(carreraBase) || limpiarTextoGrupo(carreraBase || "GENERAL");
+      let carreraCortaVal =
+        (carreraRaw &&
+          (resolverNombreCortoCarrera(carreraRaw) || carreraVal)) ||
+        "";
+      let numeroGrupoVal = limpiarTextoGrupo(grupoInternoRaw || "GENERAL");
       let grupoVal = limpiarTextoGrupo(
         codigoValido || grupoInternoRaw || carreraBase || "GENERAL",
       );
@@ -281,6 +291,15 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula) {
         deducirTurno(
           [codigoValido, grupoInternoRaw, carreraBase].filter(Boolean).join(" "),
         );
+      const diagnosticosGrupo = [];
+      if (!infoEstudiante) diagnosticosGrupo.push("No hay fila con ese correo en la base de datos");
+      if (duplicadoSinCoincidenciaClara) {
+        diagnosticosGrupo.push("Correo duplicado; se eligió la primera fila sin coincidencia clara");
+      }
+      if (!grupoInternoRaw) diagnosticosGrupo.push("Falta el valor de Grupos");
+      if (!carreraRaw) diagnosticosGrupo.push("Falta el valor de Carrera");
+      if (!codigoValido) diagnosticosGrupo.push("Falta el valor de Código");
+      if (!turnoVal || turnoVal === "GENERAL") diagnosticosGrupo.push("Falta el valor de Turno");
       let etiquetaGrupo = "Sin Grupo Asignado";
 
       if (infoEstudiante || grupoRaw) {
@@ -307,8 +326,11 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula) {
         municipio: municipioVal,
         turno: turnoVal,
         carrera: carreraVal,
+        carreraCorta: carreraCortaVal,
+        numeroGrupo: numeroGrupoVal,
         grupo: grupoVal,
         codigo: codigoVal,
+        codigoGrupo: codigoValido,
         etiquetaGrupo,
       };
 
@@ -362,6 +384,7 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula) {
         datosContacto,
         estadoEstudiante,
         convalidaciones,
+        diagnosticosGrupo,
         calificacionesRaw: estCal,
         modulos: {},
       };
@@ -451,4 +474,3 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula) {
       return analisis;
     });
 }
-

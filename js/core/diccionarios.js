@@ -8,6 +8,7 @@
 
 let centros = {};
 let carreras = {};
+let nombresCortosCarreras = {};
 let sistema = { anio_academico: new Date().getFullYear(), contrasena_por_defecto: "" };
 let cargado = false;
 
@@ -29,6 +30,7 @@ export async function cargarDiccionarios() {
   ]);
   centros = resCentros.ok ? await resCentros.json() : {};
   carreras = resCarreras.ok ? await resCarreras.json() : {};
+  nombresCortosCarreras = carreras._nombres_selector || {};
   sistema = resSistema.ok ? { ...sistema, ...(await resSistema.json()) } : sistema;
   cargado = true;
 }
@@ -82,6 +84,21 @@ export function resolverCarrera(valor) {
     ([, v]) => v && normalizarClave(v) === clave,
   );
   return porNombreCompleto ? porNombreCompleto[1] : null;
+}
+
+/** Nombre corto de carrera para el selector, si está definido en el diccionario. */
+export function resolverNombreCortoCarrera(valor) {
+  const clave = normalizarClave(valor);
+  if (!clave) return null;
+  const entrada = Object.entries(carreras)
+    .filter(([k]) => !k.startsWith("_"))
+    .find(
+      ([k, v]) =>
+        normalizarClave(k) === clave ||
+        (v && normalizarClave(v) === clave),
+    );
+  if (!entrada) return null;
+  return nombresCortosCarreras[entrada[0]] || entrada[1] || entrada[0];
 }
 
 /** Lista de centros para llenar selectores: [{ codigo, nombre, municipio }] */

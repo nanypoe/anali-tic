@@ -164,27 +164,58 @@ function popularSelectorGrupos() {
   const grupoSelect = document.getElementById("grupo-selector");
   if (!grupoSelect) return;
 
-  const gruposSet = new Set();
+  const gruposMap = new Map();
   datosActuales.forEach((est) => {
-    if (est.grupoInfo && est.grupoInfo.etiquetaGrupo) {
-      gruposSet.add(est.grupoInfo.etiquetaGrupo);
-    }
+    const info = est.grupoInfo;
+    const etiqueta = info?.etiquetaGrupo;
+    if (!etiqueta || gruposMap.has(etiqueta)) return;
+
+    const numeroGrupo = String(info.numeroGrupo || info.grupo || "").trim();
+    const carrera = String(info.carreraCorta ?? info.carrera ?? "").trim();
+    const codigoGrupo = String(info.codigoGrupo || info.codigo || "").trim();
+    const turno = String(info.turno || "").trim();
+    const esGrupoValido =
+      numeroGrupo &&
+      !["GENERAL", "N/D"].includes(numeroGrupo.toUpperCase()) &&
+      numeroGrupo.toLowerCase() !== carrera.toLowerCase();
+    const partesEtiqueta = [
+      esGrupoValido ? numeroGrupo : "",
+      carrera.toUpperCase() === "GENERAL" ? "" : carrera,
+      codigoGrupo.toUpperCase() === "N/D" ? "" : codigoGrupo,
+      turno.toUpperCase() === "GENERAL" ? "" : turno,
+    ].filter(Boolean);
+
+    gruposMap.set(
+      etiqueta,
+      tipoBaseTic() && partesEtiqueta.length > 0
+        ? partesEtiqueta.join(" - ").toLocaleUpperCase("es")
+        : etiqueta,
+    );
   });
 
-  const grupos = Array.from(gruposSet)
-    .filter((grp) => grp !== "Sin Grupo Asignado")
-    .sort();
+  const grupos = Array.from(gruposMap.entries()).filter(
+    ([grupo]) => grupo !== "Sin Grupo Asignado",
+  );
+  grupos.sort(([grupoA, etiquetaA], [grupoB, etiquetaB]) =>
+    tipoBaseTic()
+      ? etiquetaA.localeCompare(etiquetaB, "es", { numeric: true, sensitivity: "base" })
+      : grupoA < grupoB
+        ? -1
+        : grupoA > grupoB
+          ? 1
+          : 0,
+  );
 
-  if (grupoActivo !== "TODOS" && !grupos.includes(grupoActivo)) {
+  if (grupoActivo !== "TODOS" && !grupos.some(([grupo]) => grupo === grupoActivo)) {
     grupoActivo = "TODOS";
   }
 
-  let optionsHTML = `<option value="TODOS">Todos los grupos</option>`;
-  grupos.forEach((grp) => {
-    optionsHTML += `<option value="${grp}">${grp}</option>`;
+  grupoSelect.replaceChildren(
+    new Option(tipoBaseTic() ? "TODOS LOS GRUPOS" : "Todos los grupos", "TODOS"),
+  );
+  grupos.forEach(([grupo, etiqueta]) => {
+    grupoSelect.add(new Option(etiqueta, grupo));
   });
-
-  grupoSelect.innerHTML = optionsHTML;
   grupoSelect.value = grupoActivo;
   grupoSelect.onchange = (e) => {
     grupoActivo = e.target.value;

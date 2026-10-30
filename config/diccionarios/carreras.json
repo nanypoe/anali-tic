@@ -1,5 +1,21 @@
 {
-    "_nota": "Clave: forma corta que aparece en la base de datos (sin tildes, minúsculas). Valor: nombre completo para exportaciones. Si el valor está vacío, la app usa el nombre corto en mayúsculas y lo indica en el panel de calidad de datos.",
+    "_nota": "Clave: forma corta que aparece en la base de datos. Valor: nombre completo para exportaciones. _nombres_selector permite definir nombres cortos para el selector; si no se define uno, se usa el valor de la carrera.",
+    "_nombres_selector": {
+        "programacion": "Programación",
+        "contabilidad" : "Contabilidad",
+        "computacion" : "Computación",
+        "cocina" : "Gastronomía",
+        "ingles" : "Inglés",
+        "diseño" : "Diseño Gráfico",
+        "pasteleria" : "Pasteleria",
+        "banca" : "Banca y Finanzas",
+        "administracion" : "Administración",
+        "veterinaria" : "Veterinaria",
+        "zootecnia" : "Zootecnia",
+        "agronomia" : "Agronomía",
+        "ia" : "Inteligencia Artificial",
+        "aduana" : "Gestión Aduanera"
+    },
     "contabilidad" : "Técnico General en Contabilidad",
     "computacion" : "Técnico General en Computación",
     "cocina" : "Técnico General en Cocina y Gastronomía",
@@ -12,5 +28,6 @@
     "veterinaria" : "Técnico General en Veterinaria",
     "zootecnia" : "Técnico General en Zootecnia",
     "agronomia" : "Técnico General en Agronomía",
-    "ia" : "Técnico Especialista en Inteligencia Artificial"
+    "ia" : "Técnico Especialista en Inteligencia Artificial",
+    "aduana" : "Técnico General en Gestión Aduanera"
 }

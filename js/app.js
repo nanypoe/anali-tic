@@ -8,6 +8,7 @@ import { descargarPlantillaTic, descargarPlantillaVirtual } from './ui/plantilla
 import { mostrarIntroPrimeraVez } from './ui/intro.js';
 import { activarArrastreArchivos, actualizarProgreso } from './ui/dropzone.js';
 import { toast } from './ui/feedback.js';
+import { inicializarNotificaciones } from './ui/notificationRenderer.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   const dbFileInput = document.getElementById('db-file-input');
@@ -68,6 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         inicializarControlesTabla(estudiantes, configAula);
+        inicializarNotificaciones(estudiantes, getTipoBase());
         toast(`Análisis listo: ${estudiantes.length} estudiante(s)`, 'exito');
       } catch (error) {
         toast(`Error en el análisis: ${error.message}`, 'error');
