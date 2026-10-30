@@ -1073,3 +1073,135 @@ body {
 }
 .tabla-card #tabla-resultados { width: 100% !important; margin: 0; }
 
+
+/* ============================================================================
+   SECCIÓN 16: BIENVENIDA (primera vez) Y PANTALLA DE CARGA INTERACTIVA
+   ============================================================================ */
+
+/* Bienvenida: pantalla completa de 2 s, sin bloquear clics */
+.intro-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 30% 20%, #7C5CFA 0%, #5B3DF5 45%, #3E24C7 100%);
+  color: #ffffff;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.45s ease, transform 0.6s cubic-bezier(.4,0,.2,1);
+}
+.intro-splash.visible { opacity: 1; }
+.intro-splash.salir { opacity: 0; transform: scale(1.04); }
+.intro-contenido { text-align: center; padding: 1rem; }
+.intro-logo {
+  width: 104px;
+  height: 104px;
+  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.25));
+  animation: intro-entrada 0.7s cubic-bezier(.34,1.56,.64,1) both;
+}
+.intro-titulo {
+  margin: 0.8rem 0 0.2rem;
+  font-size: 2.4rem;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  animation: intro-subir 0.6s 0.35s ease both;
+}
+.intro-tagline {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--at-ambar);
+  animation: intro-subir 0.6s 0.5s ease both;
+}
+.intro-frase {
+  margin: 0.4rem 0 1.2rem;
+  font-size: 0.92rem;
+  opacity: 0.85;
+  animation: intro-subir 0.6s 0.65s ease both;
+}
+.intro-barra {
+  width: 180px;
+  height: 4px;
+  margin: 0 auto;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.25);
+  overflow: hidden;
+}
+.intro-barra span {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: var(--at-ambar);
+  transform-origin: left;
+  animation: intro-llenar 1.5s 0.2s cubic-bezier(.4,0,.2,1) both;
+}
+@keyframes intro-entrada { from { transform: scale(0.4) rotate(-12deg); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes intro-subir { from { transform: translateY(14px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes intro-llenar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* Progreso de carga: 1 base, 2 calificaciones, 3 análisis */
+.progreso-carga {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--at-gris);
+}
+.paso-progreso { display: flex; align-items: center; gap: 0.4rem; transition: color 0.3s ease; }
+.paso-circulo {
+  width: 26px; height: 26px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: #E7E4F7;
+  color: var(--at-primario-oscuro);
+  transition: background-color 0.35s ease, transform 0.35s cubic-bezier(.34,1.56,.64,1);
+}
+.paso-progreso.completo { color: var(--at-verde); }
+.paso-progreso.completo .paso-circulo { background: var(--at-verde); color: #ffffff; transform: scale(1.08); }
+.paso-progreso.completo .paso-circulo::before { content: "\F26A"; font-family: "bootstrap-icons"; }
+.paso-progreso.completo .paso-circulo { font-size: 0; }
+.paso-progreso.completo .paso-circulo::before { font-size: 0.9rem; }
+.paso-progreso.activo .paso-circulo { background: var(--at-ambar); color: var(--at-tinta); animation: latido 1s ease-in-out infinite; }
+.paso-linea { width: 48px; height: 3px; border-radius: 3px; background: #E7E4F7; overflow: hidden; position: relative; }
+.paso-linea.completo { background: var(--at-verde); }
+
+/* Tarjetas: arrastrar archivo encima */
+.upload-card.arrastrando {
+  border-color: var(--at-primario) !important;
+  background: var(--at-primario-claro) !important;
+  transform: scale(1.02);
+  box-shadow: 0 0 0 6px rgba(91, 61, 245, 0.15);
+}
+.upload-card .icon-shape i { transition: transform 0.3s ease; }
+.upload-card.arrastrando .icon-shape i { animation: flotar 1s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-logo, .intro-titulo, .intro-tagline, .intro-frase, .intro-barra span,
+  .paso-progreso.activo .paso-circulo, .upload-card.arrastrando .icon-shape i { animation: none !important; }
+}
+
+/* Selector de archivo nativo con el estilo de marca */
+#upload-container input[type="file"] {
+  font-size: 0.82rem;
+  color: var(--at-gris);
+  border-radius: 0.6rem !important;
+  padding: 0.25rem;
+  cursor: pointer;
+}
+#upload-container input[type="file"]::file-selector-button {
+  background: var(--at-primario);
+  color: #ffffff;
+  border: 0;
+  border-radius: 0.45rem;
+  padding: 0.35rem 0.9rem;
+  margin-right: 0.7rem;
+  font-weight: 700;
+  transition: background-color 0.2s ease, transform 0.15s ease;
+}
+#upload-container input[type="file"]:hover::file-selector-button { background: var(--at-primario-oscuro); }
+#upload-container input[type="file"]:active::file-selector-button { transform: scale(0.97); }
+#upload-container .upload-card.archivo-listo input[type="file"] { color: #065F46; }

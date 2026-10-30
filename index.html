@@ -25,6 +25,15 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
   <body class="bg-light d-flex flex-column min-vh-100">
+    <div id="intro-splash" class="intro-splash" aria-hidden="true">
+      <div class="intro-contenido">
+        <img src="./assets/logo-anali-tic.svg" alt="" class="intro-logo" />
+        <h1 class="intro-titulo">Anali-TIC</h1>
+        <p class="intro-tagline">Analítica que acompaña cada protagonista</p>
+        <p class="intro-frase">Cada dato cuenta: cada avance es una oportunidad.</p>
+        <div class="intro-barra"><span></span></div>
+      </div>
+    </div>
     <div id="loader-overlay">
       <div class="text-center">
         <div class="loader-barras" role="status" aria-label="Cargando">
@@ -74,6 +83,14 @@
             <p class="text-muted small">
               Selecciona la base de datos de estudiantes y el reporte de calificaciones descargado del CAMPUS Virtual para generar los análisis visuales.
             </p>
+          </div>
+
+          <div id="progreso-carga" class="progreso-carga mb-3" aria-live="polite">
+            <div class="paso-progreso" data-paso="1"><span class="paso-circulo">1</span><span>Base de datos</span></div>
+            <div class="paso-linea"></div>
+            <div class="paso-progreso" data-paso="2"><span class="paso-circulo">2</span><span>Calificaciones</span></div>
+            <div class="paso-linea"></div>
+            <div class="paso-progreso" data-paso="3"><span class="paso-circulo"><i class="bi bi-stars"></i></span><span>Análisis</span></div>
           </div>
 
           <div class="row g-3">
