@@ -19,6 +19,7 @@ import {
   estiloPorEstado,
 } from "./excelEstilos.js";
 import { formatearFechaHora } from "../core/fechas.js";
+import { obtenerComponentesGrupo } from "../core/groupFormat.js";
 
 const APROBADAS = ["APROBADO", "REALIZADO", "CONVALIDADO"];
 
@@ -62,6 +63,7 @@ export function construirLibroTabla(estudiantes, moduloNombre, configAula, meta 
   const cabeceras = [
     "Grupo",
     "Carrera",
+    "Código",
     "Turno",
     "Estudiante",
     "Correo",
@@ -95,13 +97,14 @@ export function construirLibroTabla(estudiantes, moduloNombre, configAula, meta 
   });
 
   // Anchos
-  const anchos = [14, 30, 14, 34, 30, 16, 12, 12, 10, ...actividades.map(() => 12)];
+  const anchos = [12, 28, 24, 14, 34, 30, 16, 12, 12, 10, ...actividades.map(() => 12)];
   ws.columns = anchos.map((w) => ({ width: w }));
 
   estilizarEncabezadoTabla(ws, filaCab, cabeceras);
 
   estudiantes.forEach((est) => {
     const mod = est.modulos ? est.modulos[moduloNombre] : null;
+    const grupo = obtenerComponentesGrupo(est.grupoInfo);
     const cuestionarios = [];
     if (mod?.unidades) Object.values(mod.unidades).forEach((lista) => cuestionarios.push(...lista));
 
@@ -121,8 +124,9 @@ export function construirLibroTabla(estudiantes, moduloNombre, configAula, meta 
     });
 
     const fila = ws.addRow([
-      est.grupoInfo?.grupo || "",
-      est.grupoInfo?.carrera || "",
+      grupo.numeroGrupo,
+      grupo.carrera,
+      grupo.codigoGrupo,
       est.grupoInfo?.turno || "",
       `${est.nombre} ${est.apellidos}`.trim(),
       est.correo || "",
@@ -133,17 +137,17 @@ export function construirLibroTabla(estudiantes, moduloNombre, configAula, meta 
       ...valoresActividades,
     ]);
 
-    fila.getCell(7).numFmt = "0%";
+    fila.getCell(8).numFmt = "0%";
     const avance = estiloAvance(porcentaje * 100);
-    fila.getCell(7).fill = { type: "pattern", pattern: "solid", fgColor: { argb: avance.bg } };
-    fila.getCell(7).font = { bold: true, color: { argb: avance.tx } };
+    fila.getCell(8).fill = { type: "pattern", pattern: "solid", fgColor: { argb: avance.bg } };
+    fila.getCell(8).font = { bold: true, color: { argb: avance.tx } };
+    fila.getCell(8).alignment = { horizontal: "center", vertical: "middle" };
+
+    aplicarEstadoCelda(fila.getCell(7), fila.getCell(7).value);
     fila.getCell(7).alignment = { horizontal: "center", vertical: "middle" };
 
-    aplicarEstadoCelda(fila.getCell(6), fila.getCell(6).value);
-    fila.getCell(6).alignment = { horizontal: "center", vertical: "middle" };
-
     actividades.forEach((_, i) => {
-      const celda = fila.getCell(10 + i);
+      const celda = fila.getCell(11 + i);
       celda.alignment = { horizontal: "center", vertical: "middle" };
       const valor = celda.value;
       if (typeof valor === "number") {

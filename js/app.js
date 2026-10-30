@@ -5,7 +5,7 @@ import { cargarDiccionarios } from './core/diccionarios.js';
 import { iniciarSesion, getTipoBase } from './core/store.js';
 import { inicializarControlesTabla } from './ui/tableRenderer.js';
 import { descargarPlantillaTic, descargarPlantillaVirtual } from './ui/plantillaRenderer.js';
-import { mostrarIntroPrimeraVez } from './ui/intro.js';
+import { inicializarPreferencias, mostrarIntroPrimeraVez } from './ui/intro.js';
 import { activarArrastreArchivos, actualizarProgreso } from './ui/dropzone.js';
 import { toast } from './ui/feedback.js';
 import { inicializarNotificaciones } from './ui/notificationRenderer.js';
@@ -15,11 +15,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const gradesFileInput = document.getElementById('grades-file-input');
   const uploadContainer = document.getElementById('upload-container');
   const statusArea = document.getElementById('status-area');
-  const loaderOverlay = document.getElementById('loader-overlay');
   const navActions = document.getElementById('nav-actions');
   const badgeTipoBase = document.getElementById('badge-tipo-base');
   const infoSesion = document.getElementById('info-sesion');
+  const analysisProgress = document.getElementById('analysis-progress');
+  const analysisProgressLabel = document.getElementById('analysis-progress-label');
+  const analysisProgressPercent = document.getElementById('analysis-progress-percent');
+  const analysisProgressBar = document.getElementById('analysis-progress-bar');
 
+  inicializarPreferencias();
   mostrarIntroPrimeraVez();
 
   document.getElementById('btn-plantilla-tic')?.addEventListener('click', descargarPlantillaTic);
@@ -37,14 +41,65 @@ document.addEventListener('DOMContentLoaded', () => {
     if (dbFileInput.files.length === 0 || gradesFileInput.files.length === 0) return;
 
     actualizarProgreso(true, true, true);
-    if (loaderOverlay) loaderOverlay.style.display = 'flex';
+    if (uploadContainer) uploadContainer.classList.add('d-none');
+    if (statusArea) {
+      statusArea.classList.remove('d-none');
+      statusArea.inert = true;
+      statusArea.setAttribute('aria-busy', 'true');
+    }
+    if (analysisProgress) {
+      analysisProgress.classList.remove('d-none');
+      analysisProgress.setAttribute('aria-hidden', 'false');
+    }
+
+    const actualizarProgresoArchivo = (nombre, porcentaje) => {
+      if (analysisProgressLabel) {
+        analysisProgressLabel.textContent = porcentaje === null
+          ? `Preparando ${nombre}...`
+          : `Leyendo ${nombre}...`;
+      }
+      if (analysisProgressPercent) {
+        analysisProgressPercent.textContent = porcentaje === null ? '—' : `${porcentaje}%`;
+      }
+      if (analysisProgressBar) {
+        analysisProgressBar.style.width = porcentaje === null ? '0%' : `${porcentaje}%`;
+        analysisProgressBar.closest('[role="progressbar"]')?.setAttribute(
+          'aria-valuenow',
+          String(porcentaje ?? 0),
+        );
+      }
+    };
+
+    const tabla = document.getElementById('tabla-resultados');
+    const tablaHead = document.getElementById('tabla-head');
+    const tablaBody = document.getElementById('tabla-body');
+    if (tabla) tabla.setAttribute('aria-busy', 'true');
+    if (tablaHead) {
+      tablaHead.innerHTML = '<tr><th>Estudiante</th><th>Acciones</th><th>Actividades</th><th>Estado</th></tr>';
+    }
+    if (tablaBody) {
+      tablaBody.innerHTML = Array.from({ length: 6 }, () => `
+        <tr aria-hidden="true">
+          <td><div class="skeleton-fila ancha"></div></td>
+          <td><div class="skeleton-fila corta"></div></td>
+          <td><div class="skeleton-fila"></div></td>
+          <td><div class="skeleton-fila corta"></div></td>
+        </tr>
+      `).join('');
+    }
+    actualizarProgresoArchivo('configuración', null);
 
     setTimeout(async () => {
       try {
         await cargarDiccionarios();
         const dbFile = dbFileInput.files[0];
-        const dbResult = await leerArchivo(dbFile);
-        const gradesResult = await leerArchivo(gradesFileInput.files[0]);
+        const dbResult = await leerArchivo(dbFile, ({ porcentaje }) => {
+          actualizarProgresoArchivo(dbFile.name, porcentaje);
+        });
+        const gradesFile = gradesFileInput.files[0];
+        const gradesResult = await leerArchivo(gradesFile, ({ porcentaje }) => {
+          actualizarProgresoArchivo(gradesFile.name, porcentaje);
+        });
 
         const configAula = await detectarConfiguracionAula(gradesResult.columnas);
         const { estudiantes, cambiosRestaurados } = iniciarSesion({
@@ -55,9 +110,16 @@ document.addEventListener('DOMContentLoaded', () => {
           configAula,
         });
 
-        if (uploadContainer) uploadContainer.classList.add('d-none');
         if (navActions) navActions.classList.remove('d-none');
-        if (statusArea) statusArea.classList.remove('d-none');
+        if (statusArea) {
+          statusArea.inert = false;
+          statusArea.removeAttribute('aria-busy');
+        }
+        if (tabla) tabla.setAttribute('aria-busy', 'false');
+        if (analysisProgress) {
+          analysisProgress.classList.add('d-none');
+          analysisProgress.setAttribute('aria-hidden', 'true');
+        }
 
         if (badgeTipoBase) {
           const esTic = getTipoBase() === 'tic';
@@ -74,8 +136,18 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch (error) {
         toast(`Error en el análisis: ${error.message}`, 'error');
         actualizarProgreso(true, true, false);
+        if (uploadContainer) uploadContainer.classList.remove('d-none');
+        if (statusArea) {
+          statusArea.classList.add('d-none');
+          statusArea.inert = false;
+          statusArea.removeAttribute('aria-busy');
+        }
+        if (tabla) tabla.setAttribute('aria-busy', 'false');
       } finally {
-        if (loaderOverlay) loaderOverlay.style.display = 'none';
+        if (analysisProgress) {
+          analysisProgress.classList.add('d-none');
+          analysisProgress.setAttribute('aria-hidden', 'true');
+        }
       }
     }, 500);
   }

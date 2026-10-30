@@ -12,6 +12,7 @@ import { mostrarModalGestion } from "./gestionRenderer.js";
 import { exportarTablaExcel } from "./exportTablaRenderer.js";
 import { estadoCierre } from "../core/fechas.js";
 import { getTipoBase } from "../core/store.js";
+import { formatearEtiquetaGrupo } from "../core/groupFormat.js";
 import { pulsar, toast } from "./feedback.js";
 
 const tipoBaseTic = () => getTipoBase() === "tic";
@@ -38,7 +39,7 @@ export function inicializarControlesTabla(datosEstudiantes, configAula) {
   configurarFiltrosEstado();
 
   const searchInput = document.getElementById("search-input");
-  if (searchInput) searchInput.oninput = () => ejecutarRenderizado();
+  if (searchInput) searchInput.oninput = () => ejecutarRenderizado(false);
 
   const chkRetirados = document.getElementById("chk-mostrar-retirados");
   if (chkRetirados) {
@@ -170,27 +171,7 @@ function popularSelectorGrupos() {
     const etiqueta = info?.etiquetaGrupo;
     if (!etiqueta || gruposMap.has(etiqueta)) return;
 
-    const numeroGrupo = String(info.numeroGrupo || info.grupo || "").trim();
-    const carrera = String(info.carreraCorta ?? info.carrera ?? "").trim();
-    const codigoGrupo = String(info.codigoGrupo || info.codigo || "").trim();
-    const turno = String(info.turno || "").trim();
-    const esGrupoValido =
-      numeroGrupo &&
-      !["GENERAL", "N/D"].includes(numeroGrupo.toUpperCase()) &&
-      numeroGrupo.toLowerCase() !== carrera.toLowerCase();
-    const partesEtiqueta = [
-      esGrupoValido ? numeroGrupo : "",
-      carrera.toUpperCase() === "GENERAL" ? "" : carrera,
-      codigoGrupo.toUpperCase() === "N/D" ? "" : codigoGrupo,
-      turno.toUpperCase() === "GENERAL" ? "" : turno,
-    ].filter(Boolean);
-
-    gruposMap.set(
-      etiqueta,
-      tipoBaseTic() && partesEtiqueta.length > 0
-        ? partesEtiqueta.join(" - ").toLocaleUpperCase("es")
-        : etiqueta,
-    );
+    gruposMap.set(etiqueta, formatearEtiquetaGrupo(info));
   });
 
   const grupos = Array.from(gruposMap.entries()).filter(
@@ -235,7 +216,12 @@ function configurarFiltrosEstado() {
         (estadoAttr === "COMPLETADO" || estadoAttr === "PENDIENTE")
       ) {
         const tipoWA = estadoAttr === "COMPLETADO" ? "COMPLETADOS" : "PENDIENTES";
-        copiarListaWhatsAppGrupal(datosActuales, moduloActivo, grupoActivo, tipoWA, { configAula: configActual, esTic: tipoBaseTic() });
+        copiarListaWhatsAppGrupal(datosActuales, moduloActivo, grupoActivo, tipoWA, {
+          configAula: configActual,
+          esTic: tipoBaseTic(),
+          elemento: btn,
+          etiquetaGrupo: document.getElementById("grupo-selector")?.selectedOptions[0]?.textContent,
+        });
         return;
       }
 
@@ -274,7 +260,7 @@ function filtrarPorEstado(lista) {
   });
 }
 
-function ejecutarRenderizado() {
+function ejecutarRenderizado(animarFilas = true) {
   const searchInput = document.getElementById("search-input");
   const termino = searchInput ? searchInput.value.toLowerCase() : "";
 
@@ -318,7 +304,7 @@ function ejecutarRenderizado() {
     chk.closest(".form-switch")?.classList.toggle("opacity-50", filtroEstadoActivo !== "TODOS");
   }
 
-  renderizarTabla(filtrados, configActual, datosActuales);
+  renderizarTabla(filtrados, configActual, datosActuales, animarFilas);
 }
 
 function actualizarBadgesMetricas(estudiantesVisibles) {
@@ -354,13 +340,14 @@ function actualizarBadgesMetricas(estudiantesVisibles) {
   setBadge("badge-cnt-retirados", ret);
 }
 
-export function renderizarTabla(datos, configAula, datosCompletos = datos) {
+export function renderizarTabla(datos, configAula, datosCompletos = datos, animarFilas = true) {
   const tbody = document.getElementById("tabla-body");
   const head = document.getElementById("tabla-head");
 
   if (!tbody || !head) return;
 
   tbody.innerHTML = "";
+  tbody.classList.toggle("animar-filas", animarFilas);
   head.innerHTML = "";
 
   if (!datos || datos.length === 0) {
@@ -377,10 +364,10 @@ export function renderizarTabla(datos, configAula, datosCompletos = datos) {
     totalCuestionariosModulo += unidadesConfig[uni].length;
   }
 
-  // Encabezado: Estudiante, Esquela, ACTIVIDADES y Estado (las credenciales viven en la boleta)
+  // Encabezado: Estudiante, Acciones, ACTIVIDADES y Estado.
   let filaUni = `<tr>
     <th rowspan="3" class="align-middle text-start px-3 col-estudiante">Estudiante</th>
-    <th rowspan="3" class="align-middle text-center col-acciones" style="width: 60px;">Esquela</th>
+    <th rowspan="3" class="align-middle text-center col-acciones">Acciones</th>
     <th colspan="${totalCuestionariosModulo}" class="text-center fw-bold col-actividades align-middle" style="letter-spacing: 1px;">ACTIVIDADES</th>
     <th rowspan="3" class="align-middle text-center">Estado</th>
   </tr><tr>`;
@@ -402,6 +389,8 @@ export function renderizarTabla(datos, configAula, datosCompletos = datos) {
     const tr = document.createElement("tr");
     tr.className = "row-estudiante";
     tr.style.cursor = "pointer";
+    tr.tabIndex = 0;
+    tr.setAttribute("aria-label", `Abrir boleta individual de ${est.nombre} ${est.apellidos}`);
 
     const modData = est.modulos ? est.modulos[moduloActivo] : null;
     const esRetirado = est.estadoEstudiante === "retirado";
@@ -411,11 +400,18 @@ export function renderizarTabla(datos, configAula, datosCompletos = datos) {
       <td class="text-start px-3 py-2">
         <div class="fw-semibold text-uppercase small text-primary col-estudiante">${est.nombre} ${est.apellidos}</div>
       </td>
-      <td class="text-center align-middle col-acciones" onclick="event.stopPropagation()">
+      <td class="text-center align-middle col-acciones acciones-fila">
+        <button class="btn btn-xs btn-outline-secondary btn-boleta" type="button"
+                data-bs-toggle="tooltip" data-bs-placement="top" title="Abrir boleta"
+                aria-label="Abrir boleta individual">
+          <i class="bi bi-person-vcard"></i>
+        </button>
         ${
           esRetirado
             ? ""
-            : `<button class="btn btn-xs btn-outline-primary btn-esquela" title="Generar Esquela de Compromiso">
+            : `<button class="btn btn-xs btn-outline-primary btn-esquela" type="button"
+                       data-bs-toggle="tooltip" data-bs-placement="top" title="Generar esquela"
+                       aria-label="Generar esquela de compromiso">
                 <i class="bi bi-file-earmark-word-fill"></i>
               </button>`
         }
@@ -477,6 +473,21 @@ export function renderizarTabla(datos, configAula, datosCompletos = datos) {
     tr.innerHTML = filaHTML;
 
     tr.onclick = () => mostrarModalBoletaIndividual(est, moduloActivo, configAula);
+    tr.onkeydown = (event) => {
+      if (event.target !== tr) return;
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        mostrarModalBoletaIndividual(est, moduloActivo, configAula);
+      }
+    };
+
+    const btnBoleta = tr.querySelector(".btn-boleta");
+    if (btnBoleta) {
+      btnBoleta.onclick = (event) => {
+        event.stopPropagation();
+        mostrarModalBoletaIndividual(est, moduloActivo, configAula);
+      };
+    }
 
     const btnEsquela = tr.querySelector(".btn-esquela");
     if (btnEsquela) {
@@ -485,6 +496,9 @@ export function renderizarTabla(datos, configAula, datosCompletos = datos) {
         mostrarModalEsquela(datosCompletos, configAula, est);
       };
     }
+    tr.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((elemento) => {
+      bootstrap.Tooltip.getOrCreateInstance(elemento);
+    });
 
     tbody.appendChild(tr);
   });

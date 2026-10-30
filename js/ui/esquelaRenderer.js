@@ -15,6 +15,7 @@ import {
 } from "./exportRenderer.js";
 import { textoCierreDocumento } from "../core/fechas.js";
 import { getTipoBase } from "../core/store.js";
+import { pulsar, toast } from "./feedback.js";
 
 const CDN_DOCX = "https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js";
 const TIPO_MIME_DOCX =
@@ -750,6 +751,8 @@ export function mostrarModalEsquela(
       const grupo = obtenerGrupoSeleccionado();
       if (grupo) seleccionesOptativas.set(grupo.clave, optativoSelect.value);
       actualizarResumen();
+      pulsar(optativoSelect);
+      toast(`Módulo optativo: ${optativoSelect.value}`, "info");
     };
   }
 

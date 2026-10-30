@@ -9,6 +9,7 @@ import {
   descartarCambios,
   obtenerBaseParaExportar,
 } from "../core/store.js";
+import { formatearEtiquetaGrupo } from "../core/groupFormat.js";
 
 const MIME_XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
@@ -29,13 +30,18 @@ function modulosConConvalidacion(configAula) {
 }
 
 function etiquetasGrupos(estudiantes) {
-  const set = new Set();
+  const mapa = new Map();
   estudiantes.forEach((e) => {
     if (e.grupoInfo?.etiquetaGrupo && e.grupoInfo.etiquetaGrupo !== "Sin Grupo Asignado") {
-      set.add(e.grupoInfo.etiquetaGrupo);
+      mapa.set(
+        e.grupoInfo.etiquetaGrupo,
+        formatearEtiquetaGrupo(e.grupoInfo),
+      );
     }
   });
-  return Array.from(set).sort();
+  return Array.from(mapa.entries()).sort((a, b) =>
+    a[1].localeCompare(b[1], "es", { numeric: true, sensitivity: "base" }),
+  );
 }
 
 function listaFiltrada() {
@@ -125,7 +131,7 @@ function renderizarFilas() {
           <tr class="${retirado ? "table-secondary" : ""}" data-idx="${idx}">
             <td class="ps-3">
               <div class="fw-semibold text-uppercase small ${retirado ? "text-muted" : "text-primary"}">${escapar(est.nombre)} ${escapar(est.apellidos)}</div>
-              <div class="small text-muted">${escapar(est.grupoInfo?.etiquetaGrupo || "Sin grupo")}</div>
+              <div class="small text-muted">${escapar(formatearEtiquetaGrupo(est.grupoInfo))}</div>
               ${avisoSinRegistro}
             </td>
             <td class="text-center">${botonEstado(est, hayRegistro)}</td>
@@ -266,8 +272,12 @@ export function mostrarModalGestion(opciones = {}) {
     const grupos = etiquetasGrupos(getEstudiantes());
     selector.innerHTML =
       `<option value="TODOS">Todos los grupos</option>` +
-      grupos.map((g) => `<option value="${escapar(g)}">${escapar(g)}</option>`).join("");
-    selector.value = grupos.includes(opcionesDelModal.grupoInicial) ? opcionesDelModal.grupoInicial : "TODOS";
+      grupos.map(([clave, etiqueta]) =>
+        `<option value="${escapar(clave)}">${escapar(etiqueta)}</option>`,
+      ).join("");
+    selector.value = grupos.some(([clave]) => clave === opcionesDelModal.grupoInicial)
+      ? opcionesDelModal.grupoInicial
+      : "TODOS";
   }
 
   const buscar = document.getElementById("gestion-buscar");

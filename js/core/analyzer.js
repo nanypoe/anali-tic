@@ -5,6 +5,7 @@ import {
   resolverNombreCortoCarrera,
   contrasenaPorDefecto,
 } from "./diccionarios.js";
+import { formatearEtiquetaGrupo } from "./groupFormat.js";
 
 /**
  * Busca de forma flexible valores en objetos de Excel sin importar tildes o mayúsculas.
@@ -303,21 +304,12 @@ export function analizarEstudiantes(datosDB, datosCalificaciones, configAula) {
       let etiquetaGrupo = "Sin Grupo Asignado";
 
       if (infoEstudiante || grupoRaw) {
-        if (
-          codigoValido &&
-          carreraVal !== "GENERAL" &&
-          carreraVal !== codigoValido
-        ) {
-          etiquetaGrupo = `${codigoValido} - ${carreraVal.toUpperCase()}`;
-        } else if (
-          grupoVal !== "GENERAL" &&
-          carreraVal !== "GENERAL" &&
-          grupoVal !== carreraVal
-        ) {
-          etiquetaGrupo = `${grupoVal} - ${carreraVal.toUpperCase()}`;
-        } else {
-          etiquetaGrupo = grupoVal !== "GENERAL" ? grupoVal : carreraVal;
-        }
+        etiquetaGrupo = formatearEtiquetaGrupo({
+          numeroGrupo: numeroGrupoVal,
+          carreraCorta: carreraCortaVal,
+          carrera: carreraVal,
+          codigoGrupo: codigoValido,
+        });
       }
 
       const grupoInfo = {

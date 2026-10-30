@@ -46,25 +46,7 @@ html, body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-#loader-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(15, 23, 42, 0.88);
-  backdrop-filter: blur(8px);
-  display: none;
-  justify-content: center;
-  align-items: center;
-  z-index: 10000;
-  transition: opacity 0.3s ease;
-}
-
-
-/* ============================================================================
-   SECCIÓN 2: PANTALLA DE INICIO Y CARGA DE ARCHIVOS
-   ============================================================================ */
+/* SECCIÓN 2: PANTALLA DE INICIO Y CARGA DE ARCHIVOS */
 
 .max-w-700 {
   max-width: 700px;
@@ -247,6 +229,20 @@ html, body {
 
 .row-estudiante:hover {
   background-color: #f8fafc !important;
+}
+
+.row-estudiante:focus-visible {
+  outline: 3px solid var(--at-primario);
+  outline-offset: -3px;
+}
+
+.btn:focus-visible,
+.btn-pill:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid var(--at-primario);
+  outline-offset: 2px;
+  box-shadow: none;
 }
 
 /* Borde punteado inferior - Separador visual */
@@ -725,7 +721,12 @@ body {
   display: flex; align-items: center; justify-content: center;
   font-size: 0.75rem; font-weight: 800; color: var(--at-tinta);
 }
-@keyframes barra-crece { from { width: 0 !important; } }
+@keyframes barra-crece { from { width: 0; } }
+
+/* Barra de avance de la boleta: crece al abrirse (CSS, así no depende del orden de render) */
+.progress-bar-marca {
+  animation: barra-crece 0.9s cubic-bezier(.2,.8,.2,1) both;
+}
 
 .chip-grupo {
   background: var(--at-primario);
@@ -782,7 +783,7 @@ body {
 }
 
 /* Tabla principal: entrada escalonada de filas y hover */
-#tabla-body tr.row-estudiante {
+#tabla-body.animar-filas tr.row-estudiante {
   animation: fila-entrada 0.35s ease both;
   transition: background-color 0.15s ease;
 }
@@ -829,6 +830,87 @@ body {
 
 /* Footer con el mismo tono */
 .footer-anali { background: #ffffff !important; border-top: 3px solid var(--at-primario) !important; }
+
+.analysis-progress .progress { height: 0.55rem; }
+.analysis-progress .progress-bar { transition: width 0.15s linear; }
+
+.skeleton-fila {
+  height: 1rem;
+  max-width: 90%;
+  border-radius: 0.35rem;
+  background: linear-gradient(90deg, #eceaf5 25%, #f8f7fc 50%, #eceaf5 75%);
+  background-size: 200% 100%;
+  animation: skeleton-brillo 1.4s ease-in-out infinite;
+}
+.skeleton-fila.ancha { max-width: 100%; }
+.skeleton-fila.corta { max-width: 50%; }
+@keyframes skeleton-brillo { to { background-position: -200% 0; } }
+
+.leyenda-estados {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  color: #475569;
+}
+.leyenda-estados span { white-space: nowrap; }
+.leyenda-estados i { margin-right: 0.2rem; }
+
+.acciones-fila { white-space: nowrap; }
+.acciones-fila .btn { opacity: 0.8; }
+.acciones-fila .btn:hover,
+.row-estudiante:focus-within .acciones-fila .btn { opacity: 1; }
+.btn-boleta,
+.btn-esquela { min-width: 2rem; }
+
+.menu-notificaciones-vacio { width: min(320px, 85vw); }
+.menu-notificaciones-vacio img { width: 96px; }
+
+#ui-preferences { max-width: 390px; }
+#ui-preferences .form-check { white-space: nowrap; }
+
+.export-grupo-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  align-items: center;
+  gap: 1rem;
+}
+.export-grupo-etiqueta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.6rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+#export-grupos-opcionales {
+  max-height: min(52vh, 520px);
+  overflow-y: auto;
+}
+
+@media (max-width: 767.98px) {
+  .header-marca .container-fluid { flex-wrap: wrap; gap: 0.5rem; }
+  #ui-preferences { width: 100%; max-width: none; justify-content: flex-start !important; }
+  .export-grupo-fila { grid-template-columns: minmax(0, 1fr); gap: 0.5rem; }
+  .export-grupo-fila select { width: 100%; }
+}
+
+.reducir-animaciones *,
+.reducir-animaciones *::before,
+.reducir-animaciones *::after {
+  animation: none !important;
+  scroll-behavior: auto !important;
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .kpi-card, #tabla-body tr.row-estudiante, .reloj-cierre,
@@ -913,7 +995,7 @@ body {
   60%  { box-shadow: 0 0 0 10px transparent; }
   100% { box-shadow: 0 0 0 0 transparent; }
 }
-.btn-pill.pill-pulso { animation: pill-pulso 0.55s ease-out; }
+.pill-pulso { animation: pill-pulso 0.55s ease-out; }
 
 /* Avisos flotantes */
 .toast-contenedor {

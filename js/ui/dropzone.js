@@ -17,12 +17,16 @@ export function activarArrastreArchivos(inputs, onArchivo) {
         tarjeta.classList.add("arrastrando");
       }),
     );
-    ["dragleave", "dragend"].forEach((ev) =>
-      tarjeta.addEventListener(ev, (e) => {
-        evitar(e);
-        tarjeta.classList.remove("arrastrando");
-      }),
-    );
+    // dragleave también se dispara al pasar sobre los hijos de la tarjeta:
+    // solo se quita el resaltado cuando el cursor realmente sale de ella
+    tarjeta.addEventListener("dragleave", (e) => {
+      evitar(e);
+      if (!tarjeta.contains(e.relatedTarget)) tarjeta.classList.remove("arrastrando");
+    });
+    tarjeta.addEventListener("dragend", (e) => {
+      evitar(e);
+      tarjeta.classList.remove("arrastrando");
+    });
     tarjeta.addEventListener("drop", (e) => {
       evitar(e);
       tarjeta.classList.remove("arrastrando");

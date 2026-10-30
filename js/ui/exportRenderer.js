@@ -9,8 +9,14 @@
 import {
   resolverCentro,
   resolverCarrera,
+  resolverNombreCortoCarrera,
   centroPredominante,
 } from "../core/diccionarios.js";
+import {
+  formatearEtiquetaGrupo,
+  obtenerComponentesGrupo,
+} from "../core/groupFormat.js";
+import { pulsar, toast } from "./feedback.js";
 
 export const CENTRO_POR_DEFECTO = "ctche";
 
@@ -192,11 +198,7 @@ export function obtenerClaveGrupo(estudiante) {
 }
 
 export function obtenerEtiquetaGrupo(estudiante) {
-  const clave = obtenerClaveGrupo(estudiante);
-  const carrera = formatearCarrera(estudiante);
-  const turno = formatearTurno(estudiante);
-
-  return [clave, carrera, turno].filter(Boolean).join(" - ");
+  return formatearEtiquetaGrupo(estudiante?.grupoInfo);
 }
 
 export function escaparHtml(texto) {
@@ -364,6 +366,7 @@ export function obtenerGruposAnalizados(datosEstudiantes) {
       grupos.set(clave, {
         clave,
         etiqueta: obtenerEtiquetaGrupo(estudiante),
+        componentes: obtenerComponentesGrupo(estudiante?.grupoInfo),
         estudiantes: [],
       });
     }
@@ -1166,11 +1169,15 @@ export function mostrarModalExportacionPendientes(datosEstudiantes, configAula) 
         const etiquetaSegura = escaparHtml(grupo.etiqueta);
 
         return `
-          <div class="d-flex align-items-center justify-content-between gap-2 py-2 border-bottom">
-            <div class="small fw-semibold text-truncate flex-grow-1" style="min-width: 0" title="${etiquetaSegura}">
-              ${etiquetaSegura}
+          <div class="export-grupo-fila py-2 border-bottom">
+            <div class="export-grupo-etiqueta small" title="${etiquetaSegura}">
+              <span class="badge text-bg-light border">${escaparHtml(grupo.componentes.numeroGrupo || "Sin grupo")}</span>
+              <span class="fw-semibold">${escaparHtml(grupo.componentes.carrera || "Carrera no disponible")}</span>
+              ${grupo.componentes.codigoGrupo
+                ? `<span class="text-muted">Código: <strong>${escaparHtml(grupo.componentes.codigoGrupo)}</strong></span>`
+                : ""}
             </div>
-            <select class="form-select form-select-sm" data-grupo="${claveSegura}" style="max-width: 190px;">
+            <select class="form-select form-select-sm" data-grupo="${claveSegura}" aria-label="Módulo optativo para ${etiquetaSegura}">
               ${optativos
                 .map(
                   (nombre) => `
@@ -1221,7 +1228,11 @@ export function mostrarModalExportacionPendientes(datosEstudiantes, configAula) 
     contenedorGrupos
       .querySelectorAll("select[data-grupo]")
       .forEach((select) => {
-        select.onchange = actualizarResumen;
+        select.onchange = () => {
+          actualizarResumen();
+          pulsar(select);
+          toast(`Módulo optativo: ${select.value}`, "info");
+        };
       });
   }
 

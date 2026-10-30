@@ -1,8 +1,11 @@
 /* js/ui/chartRenderer.js */
 
-import { resolverCarrera } from "../core/diccionarios.js";
 import { getTipoBase } from "../core/store.js";
 import { estadoCierre, formatearFechaHora } from "../core/fechas.js";
+import {
+  formatearEtiquetaGrupo,
+  obtenerComponentesGrupo,
+} from "../core/groupFormat.js";
 import {
   COLOR,
   crearLibro,
@@ -24,28 +27,14 @@ const COLORES_DONA = {
   retirados: "#94A3B8",
 };
 
-const MAPA_CARRERAS = {
-  contabilidad: "CONTABILIDAD",
-  administracion: "ADMINISTRACION",
-  computacion: "COMPUTACION",
-  aduana: "GESTION ADUANERA",
-  pasteleria: "PASTELERIA Y PANADERIA",
-  banca: "BANCA Y FINANZAS",
-  ingles: "INGLES",
-  programacion: "PROGRAMACION",
-  zootecnia: "ZOOTECNIA",
-  agronomia: "AGRONOMIA",
-};
-
-function normalizar(texto) {
-  return String(texto || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-}
-
-function formatearNombreCarrera(carreraRaw = "") {
-  if (!carreraRaw || carreraRaw.trim() === "") return "CARRERA GENERAL";
-  const completa = resolverCarrera(carreraRaw);
-  if (completa) return completa.toUpperCase();
-  return MAPA_CARRERAS[normalizar(carreraRaw)] || carreraRaw.toUpperCase().trim();
+function escaparHtml(texto) {
+  return String(texto ?? "").replace(/[&<>"']/g, (caracter) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[caracter]);
 }
 
 /** Clasifica cada estudiante para el módulo indicado. */
@@ -64,12 +53,16 @@ export function calcularMetricas(datosEstudiantes, moduloNombre) {
   const grupos = new Map();
 
   datosEstudiantes.forEach((est) => {
-    const clave = est.grupoInfo?.etiquetaGrupo || "SIN GRUPO";
+    const grupoInfo = est.grupoInfo || {};
+    const clave = grupoInfo.etiquetaGrupo || "SIN GRUPO";
     if (!grupos.has(clave)) {
+      const componentes = obtenerComponentesGrupo(grupoInfo);
       grupos.set(clave, {
         etiqueta: clave,
-        codigo: est.grupoInfo?.grupo || est.grupoInfo?.codigo || "G-00",
-        carrera: formatearNombreCarrera(est.grupoInfo?.carrera || ""),
+        etiquetaEstandar: formatearEtiquetaGrupo(grupoInfo),
+        numeroGrupo: componentes.numeroGrupo,
+        carrera: componentes.carrera,
+        codigo: componentes.codigoGrupo,
         total: 0, completados: 0, enProgreso: 0, sinIniciar: 0, retirados: 0,
       });
     }
@@ -84,8 +77,10 @@ export function calcularMetricas(datosEstudiantes, moduloNombre) {
   });
 
   const listaGrupos = Array.from(grupos.values()).sort((a, b) =>
-    a.codigo.localeCompare(b.codigo, undefined, { numeric: true, sensitivity: "base" }) ||
-    a.carrera.localeCompare(b.carrera, "es", { sensitivity: "base" }),
+    a.etiquetaEstandar.localeCompare(b.etiquetaEstandar, "es", {
+      numeric: true,
+      sensitivity: "base",
+    }),
   );
   return { total, grupos: listaGrupos };
 }
@@ -267,8 +262,7 @@ export function renderizarTablaComparativaGrupos(datosEstudiantes = [], moduloNo
       <tr>
         <td>
           <div class="d-flex align-items-center gap-2">
-            <span class="chip-grupo">${g.codigo}</span>
-            <span class="fw-semibold">${g.carrera}</span>
+            <span class="fw-semibold">${escaparHtml(g.etiquetaEstandar)}</span>
           </div>
         </td>
         <td class="text-center fw-bold">${g.total}</td>
@@ -323,7 +317,7 @@ export async function exportarResumenGruposExcel(datosEstudiantes = [], moduloNo
   const libro = crearLibro();
   const ws = libro.addWorksheet("Resumen por grupos", { properties: { tabColor: { argb: COLOR.acento } } });
 
-  const cabeceras = ["Código grupo", "Carrera", "Total", "Completados", "% completados", "Pendientes", "% pendientes", "Retirados"];
+  const cabeceras = ["Grupo", "Carrera", "Código", "Total", "Completados", "% completados", "Pendientes", "% pendientes", "Retirados"];
   const cierre = getTipoBase() === "tic" ? estadoCierre(configAula, moduloNombre) : null;
   const filaCab = escribirEncabezadoReporte(ws, {
     titulo: "ANALI-TIC · RESUMEN POR GRUPOS",
@@ -334,20 +328,31 @@ export async function exportarResumenGruposExcel(datosEstudiantes = [], moduloNo
       : null,
     columnas: cabeceras.length,
   });
-  ws.columns = [14, 40, 10, 14, 15, 13, 15, 12].map((w) => ({ width: w }));
+  ws.columns = [12, 28, 24, 10, 14, 15, 13, 15, 12].map((w) => ({ width: w }));
   estilizarEncabezadoTabla(ws, filaCab, cabeceras);
 
   const filasDatos = grupos.map((g) => {
     const evaluados = g.total - g.retirados;
     const pComp = evaluados > 0 ? g.completados / evaluados : 0;
     const pPend = evaluados > 0 ? (evaluados - g.completados) / evaluados : 0;
-    return [g.codigo, g.carrera, g.total, g.completados, pComp, evaluados - g.completados, pPend, g.retirados];
+    return [
+      g.numeroGrupo,
+      g.carrera,
+      g.codigo,
+      g.total,
+      g.completados,
+      pComp,
+      evaluados - g.completados,
+      pPend,
+      g.retirados,
+    ];
   });
   const evaluadosTotal = total.total - total.retirados;
   filasDatos.forEach((f) => ws.addRow(f));
   const filaTotal = ws.addRow([
-    "TOTAL",
+    "",
     "Total del aula",
+    "",
     total.total,
     total.completados,
     evaluadosTotal > 0 ? total.completados / evaluadosTotal : 0,
@@ -358,14 +363,14 @@ export async function exportarResumenGruposExcel(datosEstudiantes = [], moduloNo
 
   const ultima = filaCab + filasDatos.length;
   estilizarFilasDatos(ws, filaCab + 1, ultima + 1, cabeceras.length);
-  [5, 7].forEach((col) => {
+  [6, 8].forEach((col) => {
     for (let r = filaCab + 1; r <= ultima + 1; r++) ws.getRow(r).getCell(col).numFmt = "0.0%";
   });
   filaTotal.eachCell((c) => {
     c.font = { bold: true, color: { argb: COLOR.primarioOscuro } };
     c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR.primarioClaro } };
   });
-  ws.getRow(filaCab + 1).getCell(4).font = { bold: true, color: { argb: "FF065F46" } };
+  ws.getRow(filaCab + 1).getCell(5).font = { bold: true, color: { argb: "FF065F46" } };
   configurarImpresion(ws, filaCab);
 
   const modClean = moduloNombre.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_\-]/g, "");
@@ -398,7 +403,8 @@ export function mostrarModalMetricasAula(datosEstudiantes, moduloNombreActual, c
     if (tituloModulo) tituloModulo.textContent = moduloSeleccionado;
   };
 
-  renderizarTodo();
+  // Se pinta ya visible: así la dona y los indicadores animan a la vista del usuario
+  modalEl.addEventListener("shown.bs.modal", renderizarTodo, { once: true });
 
   const btnExcel = document.getElementById("btn-exportar-resumen-excel");
   if (btnExcel) btnExcel.onclick = () => exportarResumenGruposExcel(datosEstudiantes, moduloSeleccionado, configAula);

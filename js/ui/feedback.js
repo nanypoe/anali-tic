@@ -28,10 +28,52 @@ export function toast(mensaje, tipo = "info") {
 }
 
 /** Pulso de confirmación sobre una píldora o botón. */
+const temporizadoresPulso = new WeakMap();
+
 export function pulsar(elemento) {
   if (!elemento) return;
+  clearTimeout(temporizadoresPulso.get(elemento));
   elemento.classList.remove("pill-pulso");
   void elemento.offsetWidth; // reinicia la animación
   elemento.classList.add("pill-pulso");
-  elemento.addEventListener("animationend", () => elemento.classList.remove("pill-pulso"), { once: true });
+  const quitarPulso = () => {
+    elemento.removeEventListener("animationend", quitarPulso);
+    elemento.classList.remove("pill-pulso");
+    clearTimeout(temporizadoresPulso.get(elemento));
+    temporizadoresPulso.delete(elemento);
+  };
+  elemento.addEventListener("animationend", quitarPulso, { once: true });
+  temporizadoresPulso.set(elemento, setTimeout(quitarPulso, 600));
+}
+
+const temporizadoresCopia = new WeakMap();
+const clasesIconoOriginales = new WeakMap();
+
+export async function copiarTextoPortapapeles(texto, elemento, mensaje) {
+  try {
+    if (!navigator.clipboard?.writeText) {
+      throw new Error("El navegador no permite acceder al portapapeles en esta página.");
+    }
+    await navigator.clipboard.writeText(texto);
+
+    const icono = elemento?.querySelector("i");
+    if (icono) {
+      if (!temporizadoresCopia.has(elemento)) {
+        clasesIconoOriginales.set(elemento, icono.className);
+      }
+      icono.className = "bi bi-clipboard-check";
+      clearTimeout(temporizadoresCopia.get(elemento));
+      temporizadoresCopia.set(elemento, setTimeout(() => {
+        if (icono.isConnected) icono.className = clasesIconoOriginales.get(elemento);
+        temporizadoresCopia.delete(elemento);
+        clasesIconoOriginales.delete(elemento);
+      }, 1200));
+    }
+    pulsar(elemento);
+    toast(mensaje, "exito");
+    return true;
+  } catch (error) {
+    toast(`No se pudo copiar: ${error.message}`, "error");
+    return false;
+  }
 }

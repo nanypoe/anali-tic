@@ -1,3 +1,5 @@
+import { formatearEtiquetaGrupo } from "../core/groupFormat.js";
+
 const MOTIVOS_NO_ALERTABLES = new Set(["Falta el valor de Turno"]);
 
 function escapar(texto) {
@@ -74,7 +76,7 @@ function renderizarDetalleEstudiante(estudiante) {
     ["Código en base de datos", valorCampo(base, ["codigo", "codigo grupo", "codigo de grupo"])],
     ["Turno en base de datos", valorCampo(base, ["turno"])],
     ["Centro en base de datos", valorCampo(base, ["centro"])],
-    ["Grupo asignado por el análisis", estudiante.grupoInfo?.etiquetaGrupo],
+    ["Grupo asignado por el análisis", formatearEtiquetaGrupo(estudiante.grupoInfo)],
   ];
   const motivosHtml = motivos.length
     ? `<ul class="mb-0">${motivos.map((motivo) => `<li>${escapar(motivo)}</li>`).join("")}</ul>`
@@ -125,15 +127,30 @@ export function inicializarNotificaciones(estudiantes, tipoBase) {
     0,
   );
 
-  boton.classList.toggle("d-none", totalAfectados === 0);
+  boton.classList.remove("d-none");
   boton.setAttribute(
     "aria-label",
     totalAfectados
       ? `Notificaciones: ${totalAfectados} estudiante(s) requieren revisión`
       : "Sin notificaciones",
   );
+  boton.title = totalAfectados
+    ? "Hay estudiantes que requieren revisión"
+    : "No hay notificaciones por revisar";
   contador.textContent = String(totalAfectados);
+  contador.classList.toggle("d-none", totalAfectados === 0);
   menu.replaceChildren();
+
+  if (totalAfectados === 0) {
+    const vacio = document.createElement("div");
+    vacio.className = "dropdown-item-text menu-notificaciones-vacio text-center py-3";
+    vacio.innerHTML = `
+      <img src="./assets/ilustracion-vacio.svg" alt="" class="mb-2" />
+      <span class="fw-semibold d-block">Todo está en orden</span>
+      <span class="small text-muted">No hay pendientes de revisión.</span>`;
+    menu.appendChild(vacio);
+    return;
+  }
 
   notificaciones.forEach(({ tipo, estudiantes: afectados }) => {
     const item = document.createElement("button");

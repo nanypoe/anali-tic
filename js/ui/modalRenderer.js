@@ -2,8 +2,9 @@
 
 import { getTipoBase } from "../core/store.js";
 import { estadoCierre, formatearFechaHora, textoCierreDocumento } from "../core/fechas.js";
-import { toast } from "./feedback.js";
+import { copiarTextoPortapapeles, toast } from "./feedback.js";
 import { contrasenaPorDefecto, anioAcademico } from "../core/diccionarios.js";
+import { formatearEtiquetaGrupo } from "../core/groupFormat.js";
 
 /**
  * 2.1. Renderiza la Ficha/Boleta Individual en el modal #modalBoletaIndividual
@@ -88,7 +89,7 @@ export function mostrarModalBoletaIndividual(estudiante, moduloNombre, configAul
         <div>
           <h4 class="fw-bold text-primary mb-1 text-uppercase">${estudiante.nombre} ${estudiante.apellidos}</h4>
           <p class="text-muted small mb-1"><i class="bi bi-envelope-at me-1"></i>${estudiante.correo || 'Sin correo registrado'}</p>
-          <span class="badge bg-light text-dark border"><i class="bi bi-people me-1"></i>${estudiante.grupoInfo?.etiquetaGrupo || 'Sin Grupo'}</span>
+          <span class="badge bg-light text-dark border"><i class="bi bi-people me-1"></i>${escaparAtributo(formatearEtiquetaGrupo(estudiante.grupoInfo))}</span>
         </div>
         <div class="text-end">
           <div class="mb-2">${estadoBadgeHTML}</div>
@@ -105,7 +106,7 @@ export function mostrarModalBoletaIndividual(estudiante, moduloNombre, configAul
           <small class="fw-bold text-primary">${porcentaje}%</small>
         </div>
         <div class="progress progress-marca" style="height: 12px;">
-          <div class="progress-bar ${porcentaje === 100 ? 'bg-success' : 'progress-bar-marca'}" role="progressbar" style="width: ${porcentaje}%"></div>
+          <div class="progress-bar progress-bar-marca ${porcentaje === 100 ? 'bg-success' : ''}" role="progressbar" style="width: ${porcentaje}%"></div>
         </div>
       </div>
 
@@ -121,7 +122,7 @@ export function mostrarModalBoletaIndividual(estudiante, moduloNombre, configAul
       <div>
         ${renderizarBotonWhatsAppDirecto(telefono, textoReporteDetallado)}
         <button class="btn btn-sm btn-outline-secondary" id="btn-copiar-reporte-txt">
-          <i class="bi bi-clipboard-check me-1"></i> Copiar Reporte
+          <i class="bi bi-clipboard me-1"></i> Copiar Reporte
         </button>
       </div>
       <button class="btn btn-sm btn-success" id="btn-capturar-boleta">
@@ -133,11 +134,11 @@ export function mostrarModalBoletaIndividual(estudiante, moduloNombre, configAul
   // Asignar eventos a los botones internos del modal
   const btnCopiar = modalBody.querySelector("#btn-copiar-reporte-txt");
   if (btnCopiar) {
-    btnCopiar.onclick = () => {
-      navigator.clipboard.writeText(textoReporteDetallado).then(() => {
-        toast("Reporte copiado al portapapeles", "exito");
-      });
-    };
+    btnCopiar.onclick = () => copiarTextoPortapapeles(
+      textoReporteDetallado,
+      btnCopiar,
+      "Reporte copiado al portapapeles",
+    );
   }
 
   vincularBloqueCredenciales(modalBody);
@@ -162,12 +163,14 @@ function renderizarBloqueCredenciales(estudiante) {
   const etiquetaOrigen = datos.contrasenaPorDefecto
     ? `<span class="badge bg-warning-subtle text-dark ms-1" title="La base no trae contraseña; se usa la del año ${anioAcademico()}">por defecto ${anioAcademico()}</span>`
     : "";
-  const campo = (etiqueta, valor, extra = "") => `
+  const campo = (etiqueta, valor, etiquetaTooltip = etiqueta) => `
     <div class="mb-2">
       <small class="text-muted d-block fw-bold">${etiqueta}</small>
       <div class="input-group input-group-sm">
         <input type="text" readonly class="form-control bg-white credencial-valor" value="${escaparAtributo(valor)}" />
-        <button class="btn btn-outline-primary btn-copiar-credencial" type="button" data-valor="${escaparAtributo(valor)}" title="Copiar">
+        <button class="btn btn-outline-primary btn-copiar-credencial" type="button" data-valor="${escaparAtributo(valor)}"
+                data-bs-toggle="tooltip" data-bs-placement="top" title="Copiar ${escaparAtributo(etiquetaTooltip.toLowerCase())}"
+                aria-label="Copiar ${escaparAtributo(etiquetaTooltip.toLowerCase())}">
           <i class="bi bi-clipboard"></i>
         </button>
       </div>
@@ -182,7 +185,7 @@ function renderizarBloqueCredenciales(estudiante) {
       </div>
       <div id="bloque-credenciales" class="d-none mt-3">
         ${campo("USUARIO", datos.usuario || "")}
-        ${campo("CONTRASEÑA" + etiquetaOrigen, datos.contrasena || "")}
+        ${campo("CONTRASEÑA" + etiquetaOrigen, datos.contrasena || "", "contraseña")}
       </div>
     </div>`;
 }
@@ -205,12 +208,12 @@ function vincularBloqueCredenciales(contenedor) {
     };
   }
   contenedor.querySelectorAll(".btn-copiar-credencial").forEach((btn) => {
-    btn.onclick = () => {
-      navigator.clipboard.writeText(btn.dataset.valor).then(() => {
-        btn.innerHTML = '<i class="bi bi-clipboard-check"></i>';
-        setTimeout(() => (btn.innerHTML = '<i class="bi bi-clipboard"></i>'), 1200);
-      });
-    };
+    btn.onclick = () => copiarTextoPortapapeles(
+      btn.dataset.valor,
+      btn,
+      `${btn.getAttribute("aria-label").replace(/^Copiar /, "")} copiado`,
+    );
+    bootstrap.Tooltip.getOrCreateInstance(btn);
   });
 }
 
@@ -376,7 +379,7 @@ export function generarTextoReporteDetallado(estudiante, moduloNombre, porcentaj
 
   let msj = `📌 ${negritaWA("REPORTE ACADÉMICO INDIVIDUAL")}\n`;
   msj += `👤 ${negritaWA("Estudiante:")} ${limpiarWA(`${estudiante.nombre} ${estudiante.apellidos}`)}\n`;
-  msj += `👥 ${negritaWA("Grupo:")} ${limpiarWA(estudiante.grupoInfo?.etiquetaGrupo || "Sin Grupo")}\n`;
+  msj += `👥 ${negritaWA("Grupo:")} ${limpiarWA(formatearEtiquetaGrupo(estudiante.grupoInfo))}\n`;
   msj += `📘 ${negritaWA(terminoAula + ":")} ${limpiarWA(moduloNombre)}\n`;
   msj += `📊 ${negritaWA("Avance General:")} ${porcentaje}% [${barraAscii}]\n`;
   msj += bloqueCierreWA(configAula, moduloNombre);
@@ -470,7 +473,9 @@ export function copiarListaWhatsAppGrupal(datosEstudiantes, moduloNombre, grupoS
   const titulo = completados ? "ESTUDIANTES COMPLETADOS" : "ESTUDIANTES PENDIENTES";
 
   let msj = `${completados ? "🎉" : "📋"} ${negritaWA(`${titulo} - ${moduloNombre}`)}\n`;
-  const etiquetaGrupo = !grupoSeleccionado || grupoSeleccionado === "TODOS" ? "Todos los grupos" : grupoSeleccionado;
+  const etiquetaGrupo = !grupoSeleccionado || grupoSeleccionado === "TODOS"
+    ? "Todos los grupos"
+    : opciones.etiquetaGrupo || grupoSeleccionado;
   msj += `👥 ${negritaWA("Grupo:")} ${limpiarWA(etiquetaGrupo)}\n`;
   msj += bloqueCierreWA(opciones.configAula, moduloNombre);
   msj += `━━━━━━━━━━━━━━━━━━━━━━\n`;
@@ -485,9 +490,9 @@ export function copiarListaWhatsAppGrupal(datosEstudiantes, moduloNombre, grupoS
     ? `${italicaWA("¡Felicidades por su excelente trabajo y cumplimiento!")}\n`
     : `${italicaWA("Por favor ponerse al día lo antes posible en el CAMPUS Virtual.")}\n`;
 
-  navigator.clipboard
-    .writeText(msj)
-    .then(() => toast(`Lista de ${completados ? "completados" : "pendientes"} copiada (${filtrados.length})`, "exito"))
-    .catch(() => toast("No se pudo copiar. Revisa los permisos del navegador.", "error"));
+  copiarTextoPortapapeles(
+    msj,
+    opciones.elemento,
+    `Lista de ${completados ? "completados" : "pendientes"} copiada (${filtrados.length})`,
+  );
 }
-
